@@ -236,14 +236,12 @@ function GameScreen() {
     >
       {/* Header */}
       <div className="w-full max-w-[min(95vw,500px)] mb-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-            <h1 className="hidden sm:block text-lg font-bold whitespace-nowrap" style={{ color: 'var(--color-text)' }}>
-              Infinite Sudoku
-            </h1>
+        <div className="flex items-center justify-center sm:justify-between gap-2 flex-wrap">
+          <h1 className="hidden sm:block text-lg font-bold whitespace-nowrap" style={{ color: 'var(--color-text)' }}>
+            Infinite Sudoku
+          </h1>
+          <div className="flex items-center gap-1.5">
             <GameModePicker onRequestNewGame={requestNewGame} />
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
             {CLERK_KEY && <UserButton />}
             <Timer />
             <GearMenu onShowShortcuts={() => setShowKeyboardHelp(true)} />
@@ -355,7 +353,7 @@ function GameScreen() {
       {/* Footer */}
       <footer className="mt-4 mb-2 text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>
         <p>Made with &#10084;&#65039; by jkup</p>
-        <p className="mt-1">
+        <p className="mt-1 hidden sm:block">
           <a
             href="https://github.com/jkup/infinite_sudoku/issues"
             target="_blank"

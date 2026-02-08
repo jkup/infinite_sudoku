@@ -53,7 +53,8 @@ export default function ControlBar({ onRequestNewGame }: Props) {
         <button onClick={() => onRequestNewGame(difficulty, mode)}
           className={btnBase}
           style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}>
-          New Game
+          <span className="sm:hidden">New</span>
+          <span className="hidden sm:inline">New Game</span>
         </button>
       </div>
 
