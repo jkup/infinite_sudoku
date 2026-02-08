@@ -10,9 +10,9 @@ import type {
   Puzzle,
   HistoryEntry,
 } from '../engine/types';
-import { gridFromValues } from '../engine/types';
+import { gridFromValues, DIGITS } from '../engine/types';
 import { generatePuzzle } from '../engine/generator';
-import { findConflicts } from '../engine/validator';
+import { findConflicts, getPeers } from '../engine/validator';
 
 type GameState = {
   // Core state
@@ -44,6 +44,7 @@ type GameState = {
   eraseCell: () => void;
   toggleNote: (digit: Digit) => void;
   setInputMode: (mode: InputMode) => void;
+  autoNote: () => void;
   undo: () => void;
   redo: () => void;
   tick: () => void;
@@ -267,6 +268,37 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setInputMode: (mode) => {
     set({ inputMode: mode });
+  },
+
+  autoNote: () => {
+    const { grid, status } = get();
+    if (status !== 'playing') return;
+
+    const newGrid = cloneGrid(grid);
+
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = newGrid[r][c];
+        if (cell.digit !== null) continue;
+
+        // Find all digits already placed in this cell's peers
+        const usedDigits = new Set<Digit>();
+        for (const peer of getPeers(r, c)) {
+          const d = newGrid[peer.row][peer.col].digit;
+          if (d !== null) usedDigits.add(d);
+        }
+
+        // Candidates = all digits not used by any peer
+        const candidates = new Set<Digit>();
+        for (const d of DIGITS) {
+          if (!usedDigits.has(d)) candidates.add(d);
+        }
+
+        cell.cornerNotes = candidates;
+      }
+    }
+
+    set({ grid: newGrid });
   },
 
   undo: () => {
