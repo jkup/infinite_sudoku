@@ -50,13 +50,13 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
     : 'var(--color-digit-placed)';
 
   // Border styles
-  // In killer mode, cell borders are invisible — the SVG cage overlay provides all structure
+  // In killer mode, all cells get a uniform thin border — the SVG cage overlay shows cage structure
   const borderStyle: CSSProperties = isKillerMode
     ? {
-        borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? 'var(--color-cell-border)' : 'transparent'}`,
-        borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? 'var(--color-cell-border)' : 'transparent'}`,
-        borderRight:  col === 8 ? '2px solid var(--color-cell-border)' : '1px solid transparent',
-        borderBottom: row === 8 ? '2px solid var(--color-cell-border)' : '1px solid transparent',
+        borderTop:    '1px solid var(--color-cell-border)',
+        borderLeft:   '1px solid var(--color-cell-border)',
+        borderRight:  col === 8 ? '1px solid var(--color-cell-border)' : 'none',
+        borderBottom: row === 8 ? '1px solid var(--color-cell-border)' : 'none',
         backgroundColor: bgColor,
       }
     : {

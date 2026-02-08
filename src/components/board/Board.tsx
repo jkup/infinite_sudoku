@@ -66,6 +66,7 @@ export default function Board() {
         className="grid grid-cols-9"
         role="grid"
         aria-label="Sudoku board"
+        style={{ border: '2px solid var(--color-board-border)' }}
       >
         {grid.flat().map((cell) => {
           const { row, col } = cell.position;
