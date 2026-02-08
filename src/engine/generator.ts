@@ -1,10 +1,11 @@
-import type { Digit, Difficulty, Puzzle } from './types';
+import type { Digit, Difficulty, GameMode, Puzzle } from './types';
 import { DIGITS, DIFFICULTY_ORDER } from './types';
 import {
   solveWithLogic,
   techniqueToDifficulty,
   hasUniqueSolution,
 } from './solver';
+import { generateCages } from './killer';
 
 /**
  * Generate a complete, valid, randomly-filled Sudoku grid.
@@ -87,7 +88,7 @@ const CLUE_TARGETS: Record<Difficulty, { min: number; max: number }> = {
  */
 export function generatePuzzle(
   targetDifficulty: Difficulty,
-  mode: 'classic' = 'classic'
+  mode: GameMode = 'classic'
 ): Puzzle {
   const targetLevel = DIFFICULTY_ORDER.indexOf(targetDifficulty);
   const { min: minClues } = CLUE_TARGETS[targetDifficulty];
@@ -141,12 +142,16 @@ export function generatePuzzle(
     // Accept if it's at the target difficulty or one level below
     // (one level below is acceptable — still a good puzzle)
     if (finalResult.solved && finalLevel >= Math.max(0, targetLevel - 1)) {
-      return {
+      const result: Puzzle = {
         initial: puzzle,
         solution,
         difficulty: finalDifficulty,
         mode,
       };
+      if (mode === 'killer') {
+        result.cages = generateCages(solution, finalDifficulty);
+      }
+      return result;
     }
   }
 
@@ -175,10 +180,14 @@ export function generatePuzzle(
     removed++;
   }
 
-  return {
+  const fallback: Puzzle = {
     initial: puzzle,
     solution,
     difficulty: 'beginner',
     mode,
   };
+  if (mode === 'killer') {
+    fallback.cages = generateCages(solution, 'beginner');
+  }
+  return fallback;
 }

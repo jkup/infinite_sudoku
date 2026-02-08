@@ -4,9 +4,10 @@ import type { Cell as CellType, CellPosition } from '../../engine/types';
 type CellProps = {
   cell: CellType;
   isSelected: boolean;
-  isHighlighted: boolean;  // Same row/col/box as selected
-  isDigitMatch: boolean;   // Same digit as selected cell
+  isHighlighted: boolean;
+  isDigitMatch: boolean;
   isConflict: boolean;
+  isKillerMode: boolean;
   onClick: (pos: CellPosition) => void;
 };
 
@@ -22,7 +23,7 @@ const CORNER_POSITIONS = [
   'bottom-0 right-0.5',
 ];
 
-function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, onClick }: CellProps) {
+function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isKillerMode, onClick }: CellProps) {
   const { position, digit, isGiven, cornerNotes, centerNotes } = cell;
 
   let bgClass = 'bg-white';
@@ -37,13 +38,16 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
     ? 'text-slate-800'
     : 'text-blue-600';
 
-  // Box border logic
+  // In killer mode, use lighter internal borders so cage dashes stand out
+  const borderColor = isKillerMode ? 'border-slate-200' : 'border-slate-300';
+  const boxBorderColor = isKillerMode ? 'border-slate-400' : 'border-slate-800';
+
   const borderClasses = [
-    'border-slate-300',
-    position.col % 3 === 0 ? 'border-l-slate-800 border-l-2' : 'border-l',
-    position.row % 3 === 0 ? 'border-t-slate-800 border-t-2' : 'border-t',
-    position.col === 8 ? 'border-r-2 border-r-slate-800' : '',
-    position.row === 8 ? 'border-b-2 border-b-slate-800' : '',
+    borderColor,
+    position.col % 3 === 0 ? `${boxBorderColor} border-l-2` : 'border-l',
+    position.row % 3 === 0 ? `${boxBorderColor} border-t-2` : 'border-t',
+    position.col === 8 ? `border-r-2 ${boxBorderColor}` : '',
+    position.row === 8 ? `border-b-2 ${boxBorderColor}` : '',
   ].join(' ');
 
   const sortedCornerNotes = [...cornerNotes].sort();

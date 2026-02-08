@@ -92,7 +92,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { timerInterval } = get();
     if (timerInterval) clearInterval(timerInterval);
 
-    const puzzle = generatePuzzle(difficulty);
+    const puzzle = generatePuzzle(difficulty, mode);
     const grid = gridFromValues(puzzle.initial, true);
 
     const interval = setInterval(() => {

@@ -7,12 +7,14 @@ import DigitBar from './components/board/DigitBar';
 import ControlBar from './components/controls/ControlBar';
 import Timer from './components/controls/Timer';
 import DifficultyPicker from './components/controls/DifficultyPicker';
+import ModePicker from './components/controls/ModePicker';
 
 function GameScreen() {
   const newGame = useGameStore((s) => s.newGame);
   const puzzle = useGameStore((s) => s.puzzle);
   const status = useGameStore((s) => s.status);
   const difficulty = useGameStore((s) => s.difficulty);
+  const mode = useGameStore((s) => s.mode);
 
   useKeyboard();
 
@@ -33,7 +35,10 @@ function GameScreen() {
           <h1 className="text-xl font-bold text-slate-800">Infinite Sudoku</h1>
           <Timer />
         </div>
-        <DifficultyPicker />
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <ModePicker />
+          <DifficultyPicker />
+        </div>
       </div>
 
       {/* Board */}
@@ -53,10 +58,10 @@ function GameScreen() {
               Puzzle Complete!
             </h2>
             <p className="text-slate-500 mb-6">
-              Great job solving this {difficulty} puzzle!
+              Great job solving this {difficulty} {mode} puzzle!
             </p>
             <button
-              onClick={() => newGame(difficulty)}
+              onClick={() => newGame(difficulty, mode)}
               className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors"
             >
               New Game
