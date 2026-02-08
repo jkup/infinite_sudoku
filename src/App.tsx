@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
@@ -10,8 +10,7 @@ import Board from './components/board/Board';
 import DigitBar from './components/board/DigitBar';
 import ControlBar from './components/controls/ControlBar';
 import Timer from './components/controls/Timer';
-import DifficultyPicker from './components/controls/DifficultyPicker';
-import ModePicker from './components/controls/ModePicker';
+import GameModePicker from './components/controls/GameModePicker';
 import PuzzleStack from './components/hint/PuzzleStack';
 import ConfirmModal from './components/ui/ConfirmModal';
 import UserButton from './components/auth/UserButton';
@@ -49,6 +48,98 @@ function ThemePicker() {
         </option>
       ))}
     </select>
+  );
+}
+
+function GearMenu() {
+  const [open, setOpen] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-9 h-9 flex items-center justify-center rounded-lg border transition-colors text-lg"
+        style={{
+          backgroundColor: 'var(--color-btn-bg)',
+          color: 'var(--color-btn-text)',
+          borderColor: 'var(--color-cell-border)',
+        }}
+        aria-label="Settings"
+      >
+        &#9881;
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 z-50 rounded-lg border shadow-lg p-3 min-w-[200px]"
+          style={{
+            backgroundColor: 'var(--color-card-bg, var(--color-bg))',
+            borderColor: 'var(--color-cell-border)',
+          }}
+        >
+          {/* Theme */}
+          <div className="mb-3">
+            <div className="text-xs font-semibold mb-1 uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
+              Theme
+            </div>
+            <ThemePicker />
+          </div>
+
+          {/* Stats toggle */}
+          <div>
+            <button
+              onClick={() => {
+                setShowStats(!showStats);
+                setOpen(false);
+              }}
+              className="w-full px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors text-left"
+              style={{
+                color: 'var(--color-btn-text)',
+                borderColor: 'var(--color-cell-border)',
+                backgroundColor: 'var(--color-btn-bg)',
+              }}
+            >
+              {showStats ? 'Hide Stats' : 'Show Stats'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Stats panel rendered outside the dropdown */}
+      {showStats && (
+        <div className="absolute right-0 top-full mt-12 z-40 w-[min(90vw,400px)]">
+          <div
+            className="rounded-lg border shadow-lg p-3"
+            style={{
+              backgroundColor: 'var(--color-card-bg, var(--color-bg))',
+              borderColor: 'var(--color-cell-border)',
+            }}
+          >
+            {CLERK_KEY ? (
+              <StatsPanel />
+            ) : (
+              <div className="text-center text-sm py-4" style={{ color: 'var(--color-text-muted)' }}>
+                Sign in to track your stats across devices.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -99,54 +190,27 @@ function GameScreen() {
     }
   }, [pendingGame, newGame]);
 
-  const [showStats, setShowStats] = useState(false);
-
   if (!puzzle) return null;
 
   return (
     <div
-      className="flex flex-col items-center min-h-screen px-4 py-6 transition-colors duration-200"
+      className="flex flex-col items-center min-h-screen px-4 py-3 transition-colors duration-200"
       style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
     >
       {/* Header */}
-      <div className="w-full max-w-[min(90vw,500px)] mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>Infinite Sudoku</h1>
-          <div className="flex items-center gap-2">
-            <ThemePicker />
-            <button
-              onClick={() => setShowStats(!showStats)}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors"
-              style={{
-                color: 'var(--color-btn-text)',
-                borderColor: 'var(--color-cell-border)',
-                backgroundColor: 'var(--color-btn-bg)',
-              }}
-            >
-              Stats
-            </button>
+      <div className="w-full max-w-[min(95vw,500px)] mb-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-lg font-bold whitespace-nowrap" style={{ color: 'var(--color-text)' }}>Infinite Sudoku</h1>
+            <GameModePicker onRequestNewGame={requestNewGame} />
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
             {CLERK_KEY && <UserButton />}
             <Timer />
+            <GearMenu />
           </div>
         </div>
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <ModePicker onRequestNewGame={requestNewGame} />
-          <DifficultyPicker onRequestNewGame={requestNewGame} />
-        </div>
       </div>
-
-      {/* Stats panel */}
-      {showStats && (
-        <div className="w-full max-w-[min(90vw,500px)] mb-4">
-          {CLERK_KEY ? (
-            <StatsPanel />
-          ) : (
-            <div className="text-center text-sm py-6" style={{ color: 'var(--color-text-muted)' }}>
-              Sign in to track your stats across devices.
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Hint puzzle stack indicator */}
       <PuzzleStack />
@@ -238,7 +302,7 @@ function GameScreen() {
       )}
 
       {/* Footer */}
-      <footer className="mt-8 mb-2 text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>
+      <footer className="mt-4 mb-2 text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>
         <p>Made with &#10084;&#65039; by jkup</p>
         <p className="mt-1">
           <a

@@ -16,7 +16,7 @@ export default function DigitBar() {
   }
 
   return (
-    <div className="grid grid-cols-9 gap-1.5 w-full max-w-[min(90vw,500px)] mx-auto mt-3">
+    <div className="grid grid-cols-9 gap-1 w-full max-w-[min(95vw,500px)] mx-auto mt-1.5">
       {DIGITS.map((d) => {
         const complete = digitCounts.get(d)! >= 9;
         return (
@@ -24,7 +24,7 @@ export default function DigitBar() {
             key={d}
             onClick={() => placeDigit(d)}
             disabled={complete}
-            className="aspect-square rounded-lg text-xl font-bold flex items-center justify-center transition-all duration-100"
+            className="py-3 rounded-lg text-2xl font-bold flex items-center justify-center transition-all duration-100"
             style={
               complete
                 ? { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-cell-border)', cursor: 'default' }

@@ -59,7 +59,7 @@ export default function Board() {
 
   return (
     <div
-      className="relative w-full max-w-[min(90vw,500px)] mx-auto"
+      className="relative w-full max-w-[min(95vw,500px)] mx-auto"
       style={{ containerType: 'inline-size' }}
     >
       <div
