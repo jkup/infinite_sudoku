@@ -38,7 +38,8 @@ export type Puzzle = {
   cages?: Cage[];              // Only for killer mode
 };
 
-export type HistoryEntry = {
+/** A snapshot of one cell's before/after state within a single undoable action. */
+export type CellChange = {
   position: CellPosition;
   previousDigit: Digit | null;
   newDigit: Digit | null;
@@ -46,6 +47,14 @@ export type HistoryEntry = {
   newCornerNotes: Set<Digit>;
   previousCenterNotes: Set<Digit>;
   newCenterNotes: Set<Digit>;
+};
+
+/**
+ * One undoable action. May affect multiple cells
+ * (e.g. placing a digit also removes that digit from peer notes).
+ */
+export type HistoryEntry = {
+  changes: CellChange[];
 };
 
 export const DIFFICULTY_ORDER: Difficulty[] = [

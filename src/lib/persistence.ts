@@ -1,4 +1,4 @@
-import type { Digit, Grid, Puzzle, GameMode, Difficulty, GameStatus, InputMode, HistoryEntry, CellPosition } from '../engine/types';
+import type { Digit, Grid, Puzzle, GameMode, Difficulty, GameStatus, InputMode, HistoryEntry, CellChange, CellPosition } from '../engine/types';
 
 const SAVE_KEY = 'infinite-sudoku-save';
 
@@ -31,7 +31,7 @@ type SerializedCell = {
 
 type SerializedGrid = SerializedCell[][];
 
-type SerializedHistoryEntry = {
+type SerializedCellChange = {
   position: CellPosition;
   previousDigit: Digit | null;
   newDigit: Digit | null;
@@ -39,6 +39,10 @@ type SerializedHistoryEntry = {
   newCornerNotes: Digit[];
   previousCenterNotes: Digit[];
   newCenterNotes: Digit[];
+};
+
+type SerializedHistoryEntry = {
+  changes: SerializedCellChange[];
 };
 
 function serializeGrid(grid: Grid): SerializedGrid {
@@ -69,28 +73,46 @@ function deserializeGrid(data: SerializedGrid): Grid {
   );
 }
 
+function serializeCellChange(c: CellChange): SerializedCellChange {
+  return {
+    position: c.position,
+    previousDigit: c.previousDigit,
+    newDigit: c.newDigit,
+    previousCornerNotes: [...c.previousCornerNotes],
+    newCornerNotes: [...c.newCornerNotes],
+    previousCenterNotes: [...c.previousCenterNotes],
+    newCenterNotes: [...c.newCenterNotes],
+  };
+}
+
+function deserializeCellChange(c: SerializedCellChange): CellChange {
+  return {
+    position: c.position,
+    previousDigit: c.previousDigit,
+    newDigit: c.newDigit,
+    previousCornerNotes: new Set(c.previousCornerNotes) as Set<Digit>,
+    newCornerNotes: new Set(c.newCornerNotes) as Set<Digit>,
+    previousCenterNotes: new Set(c.previousCenterNotes) as Set<Digit>,
+    newCenterNotes: new Set(c.newCenterNotes) as Set<Digit>,
+  };
+}
+
 function serializeHistory(history: HistoryEntry[]): SerializedHistoryEntry[] {
-  return history.map((e) => ({
-    position: e.position,
-    previousDigit: e.previousDigit,
-    newDigit: e.newDigit,
-    previousCornerNotes: [...e.previousCornerNotes],
-    newCornerNotes: [...e.newCornerNotes],
-    previousCenterNotes: [...e.previousCenterNotes],
-    newCenterNotes: [...e.newCenterNotes],
+  return history.map((entry) => ({
+    changes: entry.changes.map(serializeCellChange),
   }));
 }
 
 function deserializeHistory(data: SerializedHistoryEntry[]): HistoryEntry[] {
-  return data.map((e) => ({
-    position: e.position,
-    previousDigit: e.previousDigit,
-    newDigit: e.newDigit,
-    previousCornerNotes: new Set(e.previousCornerNotes) as Set<Digit>,
-    newCornerNotes: new Set(e.newCornerNotes) as Set<Digit>,
-    previousCenterNotes: new Set(e.previousCenterNotes) as Set<Digit>,
-    newCenterNotes: new Set(e.newCenterNotes) as Set<Digit>,
-  }));
+  // Handle legacy format (flat single-cell entries without .changes wrapper)
+  return data.map((entry) => {
+    if ('changes' in entry && Array.isArray(entry.changes)) {
+      return { changes: entry.changes.map(deserializeCellChange) };
+    }
+    // Legacy: entry itself is a single cell change
+    const legacy = entry as unknown as SerializedCellChange;
+    return { changes: [deserializeCellChange(legacy)] };
+  });
 }
 
 export function saveGame(state: {

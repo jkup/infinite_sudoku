@@ -54,12 +54,14 @@ function cloneGrid(grid: Grid): Grid {
 }
 
 function cloneHistory(history: HistoryEntry[]): HistoryEntry[] {
-  return history.map((e) => ({
-    ...e,
-    previousCornerNotes: new Set(e.previousCornerNotes),
-    newCornerNotes: new Set(e.newCornerNotes),
-    previousCenterNotes: new Set(e.previousCenterNotes),
-    newCenterNotes: new Set(e.newCenterNotes),
+  return history.map((entry) => ({
+    changes: entry.changes.map((c) => ({
+      ...c,
+      previousCornerNotes: new Set(c.previousCornerNotes),
+      newCornerNotes: new Set(c.newCornerNotes),
+      previousCenterNotes: new Set(c.previousCenterNotes),
+      newCenterNotes: new Set(c.newCenterNotes),
+    })),
   }));
 }
 

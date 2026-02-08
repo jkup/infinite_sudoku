@@ -8,11 +8,13 @@ import type {
   GameStatus,
   InputMode,
   Puzzle,
+  CellChange,
   HistoryEntry,
 } from '../engine/types';
 import { gridFromValues, DIGITS } from '../engine/types';
 import { generatePuzzle } from '../engine/generator';
 import { findConflicts, getPeers } from '../engine/validator';
+import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame } from '../lib/persistence';
 import { postGameResult } from '../lib/api';
 import { calculateScore } from '../lib/scoring';
@@ -170,8 +172,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Digit mode
     const newGrid = cloneGrid(grid);
     const target = newGrid[row][col];
+    const changes: CellChange[] = [];
 
-    const entry: HistoryEntry = {
+    const primaryChange: CellChange = {
       position: { row, col },
       previousDigit: target.digit,
       newDigit: target.digit === digit ? null : digit,
@@ -189,16 +192,44 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Clear notes when placing a digit
       target.cornerNotes.clear();
       target.centerNotes.clear();
-      entry.newCornerNotes = new Set();
-      entry.newCenterNotes = new Set();
+      primaryChange.newCornerNotes = new Set();
+      primaryChange.newCenterNotes = new Set();
+
+      // Auto-remove this digit from notes in all peer cells
+      for (const peer of getPeers(row, col)) {
+        const peerCell = newGrid[peer.row][peer.col];
+        if (peerCell.digit !== null) continue;
+        const hadCorner = peerCell.cornerNotes.has(digit);
+        const hadCenter = peerCell.centerNotes.has(digit);
+        if (!hadCorner && !hadCenter) continue;
+
+        const peerChange: CellChange = {
+          position: peer,
+          previousDigit: null,
+          newDigit: null,
+          previousCornerNotes: new Set(peerCell.cornerNotes),
+          previousCenterNotes: new Set(peerCell.centerNotes),
+          newCornerNotes: new Set(peerCell.cornerNotes),
+          newCenterNotes: new Set(peerCell.centerNotes),
+        };
+
+        if (hadCorner) peerCell.cornerNotes.delete(digit);
+        if (hadCenter) peerCell.centerNotes.delete(digit);
+
+        peerChange.newCornerNotes = new Set(peerCell.cornerNotes);
+        peerChange.newCenterNotes = new Set(peerCell.centerNotes);
+        changes.push(peerChange);
+      }
     }
+
+    changes.unshift(primaryChange);
 
     const conflicts = updateConflicts(newGrid);
     const isComplete = target.digit !== null && checkCompletion(newGrid);
 
     // Truncate redo history
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(entry);
+    newHistory.push({ changes });
 
     set({
       grid: newGrid,
@@ -227,7 +258,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newGrid = cloneGrid(grid);
     const target = newGrid[row][col];
 
-    const entry: HistoryEntry = {
+    const change: CellChange = {
       position: { row, col },
       previousDigit: target.digit,
       newDigit: null,
@@ -243,7 +274,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const conflicts = updateConflicts(newGrid);
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(entry);
+    newHistory.push({ changes: [change] });
 
     set({
       grid: newGrid,
@@ -266,7 +297,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const noteSet = inputMode === 'corner' ? 'cornerNotes' : 'centerNotes';
 
-    const entry: HistoryEntry = {
+    const change: CellChange = {
       position: { row, col },
       previousDigit: null,
       newDigit: null,
@@ -283,13 +314,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     if (noteSet === 'cornerNotes') {
-      entry.newCornerNotes = new Set(target.cornerNotes);
+      change.newCornerNotes = new Set(target.cornerNotes);
     } else {
-      entry.newCenterNotes = new Set(target.centerNotes);
+      change.newCenterNotes = new Set(target.centerNotes);
     }
 
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(entry);
+    newHistory.push({ changes: [change] });
 
     set({
       grid: newGrid,
@@ -303,34 +334,75 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   autoNote: () => {
-    const { grid, status } = get();
+    const { grid, puzzle, status, history, historyIndex } = get();
     if (status !== 'playing') return;
 
     const newGrid = cloneGrid(grid);
+    const cages = puzzle?.cages;
+    const changes: CellChange[] = [];
 
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         const cell = newGrid[r][c];
         if (cell.digit !== null) continue;
 
-        // Find all digits already placed in this cell's peers
+        // Standard Sudoku: eliminate digits seen in row/col/box
         const usedDigits = new Set<Digit>();
         for (const peer of getPeers(r, c)) {
           const d = newGrid[peer.row][peer.col].digit;
           if (d !== null) usedDigits.add(d);
         }
 
-        // Candidates = all digits not used by any peer
         const candidates = new Set<Digit>();
         for (const d of DIGITS) {
           if (!usedDigits.has(d)) candidates.add(d);
         }
 
-        cell.cornerNotes = candidates;
+        // Killer mode: also eliminate digits already placed in the same cage
+        if (cages) {
+          const cage = getCageForCell(cages, r, c);
+          if (cage) {
+            for (const cageCell of cage.cells) {
+              if (cageCell.row === r && cageCell.col === c) continue;
+              const d = newGrid[cageCell.row][cageCell.col].digit;
+              if (d !== null) candidates.delete(d);
+            }
+          }
+        }
+
+        // Only record a change if notes actually differ
+        const prevCorner = cell.cornerNotes;
+        const prevCenter = cell.centerNotes;
+        const notesChanged =
+          candidates.size !== prevCorner.size ||
+          [...candidates].some((d) => !prevCorner.has(d));
+
+        if (notesChanged || prevCenter.size > 0) {
+          changes.push({
+            position: { row: r, col: c },
+            previousDigit: null,
+            newDigit: null,
+            previousCornerNotes: new Set(prevCorner),
+            newCornerNotes: new Set(candidates),
+            previousCenterNotes: new Set(prevCenter),
+            newCenterNotes: new Set<Digit>(),
+          });
+          cell.cornerNotes = candidates;
+          cell.centerNotes = new Set<Digit>();
+        }
       }
     }
 
-    set({ grid: newGrid });
+    if (changes.length === 0) return;
+
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ changes });
+
+    set({
+      grid: newGrid,
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+    });
   },
 
   loadSavedGame: () => {
@@ -370,11 +442,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const entry = history[historyIndex];
     const newGrid = cloneGrid(grid);
-    const target = newGrid[entry.position.row][entry.position.col];
 
-    target.digit = entry.previousDigit;
-    target.cornerNotes = new Set(entry.previousCornerNotes);
-    target.centerNotes = new Set(entry.previousCenterNotes);
+    // Reverse all changes in this entry
+    for (const change of entry.changes) {
+      const target = newGrid[change.position.row][change.position.col];
+      target.digit = change.previousDigit;
+      target.cornerNotes = new Set(change.previousCornerNotes);
+      target.centerNotes = new Set(change.previousCenterNotes);
+    }
 
     set({
       grid: newGrid,
@@ -390,11 +465,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const entry = history[historyIndex + 1];
     const newGrid = cloneGrid(grid);
-    const target = newGrid[entry.position.row][entry.position.col];
 
-    target.digit = entry.newDigit;
-    target.cornerNotes = new Set(entry.newCornerNotes);
-    target.centerNotes = new Set(entry.newCenterNotes);
+    // Reapply all changes in this entry
+    for (const change of entry.changes) {
+      const target = newGrid[change.position.row][change.position.col];
+      target.digit = change.newDigit;
+      target.cornerNotes = new Set(change.newCornerNotes);
+      target.centerNotes = new Set(change.newCenterNotes);
+    }
 
     const conflicts = updateConflicts(newGrid);
     const isComplete = checkCompletion(newGrid);
