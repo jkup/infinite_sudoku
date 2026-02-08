@@ -1,5 +1,5 @@
 import { memo, type CSSProperties } from 'react';
-import type { Cell as CellType, CellPosition } from '../../engine/types';
+import type { Cell as CellType, CellPosition, Digit } from '../../engine/types';
 
 type CellProps = {
   cell: CellType;
@@ -12,22 +12,27 @@ type CellProps = {
   onClick: (pos: CellPosition) => void;
 };
 
-const CORNER_POSITIONS = [
-  'top-0 left-0.5',
-  'top-0 left-1/2 -translate-x-1/2',
-  'top-0 right-0.5',
-  'left-0.5 top-1/2 -translate-y-1/2',
-  'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-  'right-0.5 top-1/2 -translate-y-1/2',
-  'bottom-0 left-0.5',
-  'bottom-0 left-1/2 -translate-x-1/2',
-  'bottom-0 right-0.5',
-];
-
 // Border colors
 const THIN = '#e2e8f0';      // slate-200
 const MEDIUM = '#cbd5e1';    // slate-300
 const THICK = '#334155';     // slate-700
+
+/**
+ * Fixed 3x3 grid positions for corner notes.
+ * Digit 1 is always top-left, 5 always center, 9 always bottom-right.
+ * This makes notes scannable by position rather than by order.
+ */
+const NOTE_GRID: Record<Digit, { gridRow: number; gridCol: number }> = {
+  1: { gridRow: 1, gridCol: 1 },
+  2: { gridRow: 1, gridCol: 2 },
+  3: { gridRow: 1, gridCol: 3 },
+  4: { gridRow: 2, gridCol: 1 },
+  5: { gridRow: 2, gridCol: 2 },
+  6: { gridRow: 2, gridCol: 3 },
+  7: { gridRow: 3, gridCol: 1 },
+  8: { gridRow: 3, gridCol: 2 },
+  9: { gridRow: 3, gridCol: 3 },
+};
 
 function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isKillerMode, cageSum, onClick }: CellProps) {
   const { position, digit, isGiven, cornerNotes, centerNotes } = cell;
@@ -39,7 +44,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
   else if (isConflict) bgColor = '#fee2e2';   // red-100
   else if (isDigitMatch) bgColor = '#dbeafe';  // blue-100
   else if (isHighlighted) bgColor = '#f1f5f9'; // slate-100
-  else if (isGiven && !isKillerMode) bgColor = '#f8fafc'; // slate-50 for given cells in classic
+  else if (isGiven && !isKillerMode) bgColor = '#f1f5f9'; // slate-100 for given cells in classic
   else bgColor = '#ffffff';
 
   // Digit color
@@ -49,7 +54,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
     ? '#1e293b'    // slate-800
     : '#3b82f6';   // blue-500
 
-  // Border styles — inline to avoid Tailwind specificity issues
+  // Border styles
   const thinColor = isKillerMode ? THIN : MEDIUM;
   const thickColor = isKillerMode ? MEDIUM : THICK;
 
@@ -61,8 +66,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
     backgroundColor: bgColor,
   };
 
-  const sortedCornerNotes = [...cornerNotes].sort();
-  const sortedCenterNotes = [...centerNotes].sort();
+  const hasNotes = cornerNotes.size > 0 || centerNotes.size > 0;
 
   return (
     <div
@@ -74,7 +78,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
         digit ? `, value ${digit}` : ', empty'
       }${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
     >
-      {/* Killer cage sum label — rendered in DOM to avoid SVG overlap */}
+      {/* Killer cage sum label */}
       {cageSum !== null && (
         <span
           className="absolute top-0 left-0.5 z-20 leading-none font-bold text-slate-700"
@@ -95,29 +99,42 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
         >
           {digit}
         </span>
-      ) : (
+      ) : hasNotes ? (
         <>
-          {/* Corner notes */}
-          {sortedCornerNotes.map((d, i) => (
-            <span
-              key={`corner-${d}`}
-              className={`
-                absolute text-[clamp(0.4rem,1.8cqi,0.7rem)] text-slate-500
-                leading-none ${CORNER_POSITIONS[i] ?? ''}
-              `}
+          {/* Corner notes — fixed 3x3 grid so each digit is always in the same position */}
+          {cornerNotes.size > 0 && (
+            <div
+              className="absolute inset-0 grid grid-cols-3 grid-rows-3 items-center justify-items-center"
+              style={{ padding: 'clamp(1px, 0.3cqi, 3px)' }}
             >
-              {d}
-            </span>
-          ))}
+              {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((d) => (
+                <span
+                  key={d}
+                  className="text-slate-500 leading-none"
+                  style={{
+                    fontSize: 'clamp(0.35rem, 1.6cqi, 0.6rem)',
+                    gridRow: NOTE_GRID[d].gridRow,
+                    gridColumn: NOTE_GRID[d].gridCol,
+                    visibility: cornerNotes.has(d) ? 'visible' : 'hidden',
+                  }}
+                >
+                  {d}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Center notes */}
-          {sortedCenterNotes.length > 0 && (
-            <span className="text-[clamp(0.4rem,1.8cqi,0.65rem)] text-blue-400 leading-none">
-              {sortedCenterNotes.join('')}
+          {centerNotes.size > 0 && cornerNotes.size === 0 && (
+            <span
+              className="text-blue-400 leading-none"
+              style={{ fontSize: 'clamp(0.4rem, 1.8cqi, 0.65rem)' }}
+            >
+              {[...centerNotes].sort().join('')}
             </span>
           )}
         </>
-      )}
+      ) : null}
     </div>
   );
 }
