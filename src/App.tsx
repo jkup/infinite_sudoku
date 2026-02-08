@@ -23,12 +23,17 @@ function GameScreen() {
 
   useKeyboard();
 
-  // Start a game on first load
+  const loadSavedGame = useGameStore((s) => s.loadSavedGame);
+
+  // Start a game on first load — try restoring a saved game first
   useEffect(() => {
     if (!puzzle) {
-      newGame('easy');
+      const restored = loadSavedGame();
+      if (!restored) {
+        newGame('easy');
+      }
     }
-  }, [puzzle, newGame]);
+  }, [puzzle, newGame, loadSavedGame]);
 
   // Request a new game — confirm if the current game has progress
   const requestNewGame = useCallback((d: Difficulty, m: GameMode) => {

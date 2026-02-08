@@ -13,6 +13,7 @@ import type {
 import { gridFromValues, DIGITS } from '../engine/types';
 import { generatePuzzle } from '../engine/generator';
 import { findConflicts, getPeers } from '../engine/validator';
+import { saveGame, loadGame } from '../lib/persistence';
 
 type GameState = {
   // Core state
@@ -45,6 +46,7 @@ type GameState = {
   toggleNote: (digit: Digit) => void;
   setInputMode: (mode: InputMode) => void;
   autoNote: () => void;
+  loadSavedGame: () => boolean;
   undo: () => void;
   redo: () => void;
   tick: () => void;
@@ -301,6 +303,37 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ grid: newGrid });
   },
 
+  loadSavedGame: () => {
+    const saved = loadGame();
+    if (!saved) return false;
+
+    const { timerInterval } = get();
+    if (timerInterval) clearInterval(timerInterval);
+
+    const interval = setInterval(() => {
+      const state = get();
+      if (state.status === 'playing') {
+        set({ elapsedMs: state.elapsedMs + 1000 });
+      }
+    }, 1000);
+
+    set({
+      grid: saved.grid,
+      puzzle: saved.puzzle,
+      mode: saved.mode,
+      difficulty: saved.difficulty,
+      status: saved.status,
+      inputMode: saved.inputMode,
+      history: saved.history,
+      historyIndex: saved.historyIndex,
+      elapsedMs: saved.elapsedMs,
+      timerInterval: interval,
+      selectedCell: null,
+      conflicts: updateConflicts(saved.grid),
+    });
+    return true;
+  },
+
   undo: () => {
     const { grid, history, historyIndex } = get();
     if (historyIndex < 0) return;
@@ -356,3 +389,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ status: 'playing' });
   },
 }));
+
+// Auto-save on every state change (debounced slightly)
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+useGameStore.subscribe((state) => {
+  if (!state.puzzle) return;
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveGame({
+      grid: state.grid,
+      puzzle: state.puzzle!,
+      mode: state.mode,
+      difficulty: state.difficulty,
+      status: state.status,
+      inputMode: state.inputMode,
+      history: state.history,
+      historyIndex: state.historyIndex,
+      elapsedMs: state.elapsedMs,
+    });
+  }, 500);
+});
