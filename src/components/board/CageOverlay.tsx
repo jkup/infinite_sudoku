@@ -11,6 +11,9 @@ type CageOverlayProps = {
  * Lines are drawn at exact cell boundaries (no inset) so corners connect.
  */
 export default function CageOverlay({ cages }: CageOverlayProps) {
+  // Deduplicate edges: each border segment is shared by two cells,
+  // so without dedup both emit a line and it appears double-thick.
+  const seen = new Set<string>();
   const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
 
   for (let row = 0; row < 9; row++) {
@@ -18,16 +21,20 @@ export default function CageOverlay({ cages }: CageOverlayProps) {
       const borders = getCageBorders(cages, row, col);
 
       if (borders.top) {
-        lines.push({ x1: col, y1: row, x2: col + 1, y2: row });
+        const key = `h:${row},${col}`;
+        if (!seen.has(key)) { seen.add(key); lines.push({ x1: col, y1: row, x2: col + 1, y2: row }); }
       }
       if (borders.bottom) {
-        lines.push({ x1: col, y1: row + 1, x2: col + 1, y2: row + 1 });
+        const key = `h:${row + 1},${col}`;
+        if (!seen.has(key)) { seen.add(key); lines.push({ x1: col, y1: row + 1, x2: col + 1, y2: row + 1 }); }
       }
       if (borders.left) {
-        lines.push({ x1: col, y1: row, x2: col, y2: row + 1 });
+        const key = `v:${row},${col}`;
+        if (!seen.has(key)) { seen.add(key); lines.push({ x1: col, y1: row, x2: col, y2: row + 1 }); }
       }
       if (borders.right) {
-        lines.push({ x1: col + 1, y1: row, x2: col + 1, y2: row + 1 });
+        const key = `v:${row},${col + 1}`;
+        if (!seen.has(key)) { seen.add(key); lines.push({ x1: col + 1, y1: row, x2: col + 1, y2: row + 1 }); }
       }
     }
   }
