@@ -13,6 +13,8 @@ import Timer from './components/controls/Timer';
 import GameModePicker from './components/controls/GameModePicker';
 import PuzzleStack from './components/hint/PuzzleStack';
 import ConfirmModal from './components/ui/ConfirmModal';
+import KeyboardHelp from './components/ui/KeyboardHelp';
+import Onboarding from './components/ui/Onboarding';
 import UserButton from './components/auth/UserButton';
 import StatsPanel from './components/stats/StatsPanel';
 
@@ -51,7 +53,7 @@ function ThemePicker() {
   );
 }
 
-function GearMenu() {
+function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -100,7 +102,7 @@ function GearMenu() {
           </div>
 
           {/* Stats toggle */}
-          <div>
+          <div className="mb-2">
             <button
               onClick={() => {
                 setShowStats(!showStats);
@@ -114,6 +116,24 @@ function GearMenu() {
               }}
             >
               {showStats ? 'Hide Stats' : 'Show Stats'}
+            </button>
+          </div>
+
+          {/* Keyboard shortcuts */}
+          <div>
+            <button
+              onClick={() => {
+                onShowShortcuts();
+                setOpen(false);
+              }}
+              className="w-full px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors text-left"
+              style={{
+                color: 'var(--color-btn-text)',
+                borderColor: 'var(--color-cell-border)',
+                backgroundColor: 'var(--color-btn-bg)',
+              }}
+            >
+              Shortcuts
             </button>
           </div>
         </div>
@@ -156,8 +176,9 @@ function GameScreen() {
   const isInHintStack = hintStack.length > 0;
 
   const [pendingGame, setPendingGame] = useState<{ difficulty: Difficulty; mode: GameMode } | null>(null);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
 
-  useKeyboard();
+  useKeyboard(useCallback(() => setShowKeyboardHelp((v) => !v), []));
 
   const loadSavedGame = useGameStore((s) => s.loadSavedGame);
 
@@ -207,7 +228,7 @@ function GameScreen() {
           <div className="flex items-center gap-1.5 shrink-0">
             {CLERK_KEY && <UserButton />}
             <Timer />
-            <GearMenu />
+            <GearMenu onShowShortcuts={() => setShowKeyboardHelp(true)} />
           </div>
         </div>
       </div>
@@ -300,6 +321,12 @@ function GameScreen() {
           </div>
         </div>
       )}
+
+      {/* Keyboard help overlay */}
+      {showKeyboardHelp && <KeyboardHelp onClose={() => setShowKeyboardHelp(false)} />}
+
+      {/* Onboarding for first-time players */}
+      <Onboarding />
 
       {/* Footer */}
       <footer className="mt-4 mb-2 text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>

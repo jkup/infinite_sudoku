@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useHintStore } from '../store/hintStore';
 import type { Digit } from '../engine/types';
 
-export function useKeyboard() {
+export function useKeyboard(onToggleHelp?: () => void) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const state = useGameStore.getState();
@@ -99,6 +99,13 @@ export function useKeyboard() {
       // Escape — deselect
       if (e.key === 'Escape') {
         state.selectCell(null);
+        e.preventDefault();
+        return;
+      }
+
+      // ? — toggle keyboard help
+      if (e.key === '?' && onToggleHelp) {
+        onToggleHelp();
         e.preventDefault();
         return;
       }
