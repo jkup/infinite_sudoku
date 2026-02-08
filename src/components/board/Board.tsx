@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { getBox } from '../../engine/types';
 import type { CellPosition } from '../../engine/types';
+import { isCageLabelCell } from '../../engine/killer';
 import Cell from './Cell';
 import CageOverlay from './CageOverlay';
 
@@ -14,6 +16,21 @@ export default function Board() {
   if (grid.length === 0) return null;
 
   const isKiller = puzzle?.mode === 'killer' && puzzle.cages;
+
+  // Pre-compute cage labels: Map<"row,col", sum>
+  const cageLabels = useMemo(() => {
+    const labels = new Map<string, number>();
+    if (!isKiller || !puzzle?.cages) return labels;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const sum = isCageLabelCell(puzzle.cages, r, c);
+        if (sum !== null) {
+          labels.set(`${r},${c}`, sum);
+        }
+      }
+    }
+    return labels;
+  }, [isKiller, puzzle?.cages]);
 
   const selectedDigit = selectedCell
     ? grid[selectedCell.row][selectedCell.col].digit
@@ -68,6 +85,7 @@ export default function Board() {
               isDigitMatch={isDigitMatch(row, col)}
               isConflict={isConflict && !isSelected}
               isKillerMode={!!isKiller}
+              cageSum={cageLabels.get(`${row},${col}`) ?? null}
               onClick={handleClick}
             />
           );
