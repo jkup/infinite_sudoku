@@ -1,13 +1,15 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from './store/gameStore';
 import { useKeyboard } from './hooks/useKeyboard';
+import type { Difficulty, GameMode } from './engine/types';
 import Board from './components/board/Board';
 import DigitBar from './components/board/DigitBar';
 import ControlBar from './components/controls/ControlBar';
 import Timer from './components/controls/Timer';
 import DifficultyPicker from './components/controls/DifficultyPicker';
 import ModePicker from './components/controls/ModePicker';
+import ConfirmModal from './components/ui/ConfirmModal';
 
 function GameScreen() {
   const newGame = useGameStore((s) => s.newGame);
@@ -15,6 +17,9 @@ function GameScreen() {
   const status = useGameStore((s) => s.status);
   const difficulty = useGameStore((s) => s.difficulty);
   const mode = useGameStore((s) => s.mode);
+  const historyIndex = useGameStore((s) => s.historyIndex);
+
+  const [pendingGame, setPendingGame] = useState<{ difficulty: Difficulty; mode: GameMode } | null>(null);
 
   useKeyboard();
 
@@ -24,6 +29,23 @@ function GameScreen() {
       newGame('easy');
     }
   }, [puzzle, newGame]);
+
+  // Request a new game — confirm if the current game has progress
+  const requestNewGame = useCallback((d: Difficulty, m: GameMode) => {
+    const hasProgress = historyIndex >= 0 && status === 'playing';
+    if (hasProgress) {
+      setPendingGame({ difficulty: d, mode: m });
+    } else {
+      newGame(d, m);
+    }
+  }, [historyIndex, status, newGame]);
+
+  const confirmNewGame = useCallback(() => {
+    if (pendingGame) {
+      newGame(pendingGame.difficulty, pendingGame.mode);
+      setPendingGame(null);
+    }
+  }, [pendingGame, newGame]);
 
   if (!puzzle) return null;
 
@@ -36,8 +58,8 @@ function GameScreen() {
           <Timer />
         </div>
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <ModePicker />
-          <DifficultyPicker />
+          <ModePicker onRequestNewGame={requestNewGame} />
+          <DifficultyPicker onRequestNewGame={requestNewGame} />
         </div>
       </div>
 
@@ -45,10 +67,22 @@ function GameScreen() {
       <Board />
 
       {/* Controls */}
-      <ControlBar />
+      <ControlBar onRequestNewGame={requestNewGame} />
 
       {/* Digit input */}
       <DigitBar />
+
+      {/* Confirm new game modal */}
+      {pendingGame && (
+        <ConfirmModal
+          title="Start new game?"
+          message="Your current progress will be lost."
+          confirmLabel="New Game"
+          cancelLabel="Keep Playing"
+          onConfirm={confirmNewGame}
+          onCancel={() => setPendingGame(null)}
+        />
+      )}
 
       {/* Completion overlay */}
       {status === 'completed' && (

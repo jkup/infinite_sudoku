@@ -1,6 +1,6 @@
 import { useGameStore } from '../../store/gameStore';
 import { DIFFICULTY_ORDER } from '../../engine/types';
-import type { Difficulty } from '../../engine/types';
+import type { Difficulty, GameMode } from '../../engine/types';
 
 const LABELS: Record<Difficulty, string> = {
   beginner: 'Beginner',
@@ -10,9 +10,12 @@ const LABELS: Record<Difficulty, string> = {
   expert: 'Expert',
 };
 
-export default function DifficultyPicker() {
+type Props = {
+  onRequestNewGame: (difficulty: Difficulty, mode: GameMode) => void;
+};
+
+export default function DifficultyPicker({ onRequestNewGame }: Props) {
   const difficulty = useGameStore((s) => s.difficulty);
-  const newGame = useGameStore((s) => s.newGame);
   const mode = useGameStore((s) => s.mode);
 
   return (
@@ -20,7 +23,7 @@ export default function DifficultyPicker() {
       {DIFFICULTY_ORDER.map((d) => (
         <button
           key={d}
-          onClick={() => newGame(d, mode)}
+          onClick={() => onRequestNewGame(d, mode)}
           className={`
             px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
             ${

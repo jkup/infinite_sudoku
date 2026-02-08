@@ -13,7 +13,6 @@ type CellProps = {
 };
 
 // Border colors
-const THIN = '#e2e8f0';      // slate-200
 const MEDIUM = '#cbd5e1';    // slate-300
 const THICK = '#334155';     // slate-700
 
@@ -55,16 +54,22 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
     : '#3b82f6';   // blue-500
 
   // Border styles
-  const thinColor = isKillerMode ? THIN : MEDIUM;
-  const thickColor = isKillerMode ? MEDIUM : THICK;
-
-  const borderStyle: CSSProperties = {
-    borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? thickColor : thinColor}`,
-    borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? thickColor : thinColor}`,
-    borderRight:  col === 8 ? `2px solid ${thickColor}` : `1px solid ${thinColor}`,
-    borderBottom: row === 8 ? `2px solid ${thickColor}` : `1px solid ${thinColor}`,
-    backgroundColor: bgColor,
-  };
+  // In killer mode, cell borders are invisible — the SVG cage overlay provides all structure
+  const borderStyle: CSSProperties = isKillerMode
+    ? {
+        borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? '#94a3b8' : 'transparent'}`,
+        borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? '#94a3b8' : 'transparent'}`,
+        borderRight:  col === 8 ? '2px solid #94a3b8' : '1px solid transparent',
+        borderBottom: row === 8 ? '2px solid #94a3b8' : '1px solid transparent',
+        backgroundColor: bgColor,
+      }
+    : {
+        borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? THICK : MEDIUM}`,
+        borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? THICK : MEDIUM}`,
+        borderRight:  col === 8 ? `2px solid ${THICK}` : `1px solid ${MEDIUM}`,
+        borderBottom: row === 8 ? `2px solid ${THICK}` : `1px solid ${MEDIUM}`,
+        backgroundColor: bgColor,
+      };
 
   const hasNotes = cornerNotes.size > 0 || centerNotes.size > 0;
 

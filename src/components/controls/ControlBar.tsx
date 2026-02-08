@@ -1,5 +1,5 @@
 import { useGameStore } from '../../store/gameStore';
-import type { InputMode } from '../../engine/types';
+import type { Difficulty, GameMode, InputMode } from '../../engine/types';
 
 const INPUT_MODES: { mode: InputMode; label: string }[] = [
   { mode: 'digit', label: 'Digit' },
@@ -9,14 +9,17 @@ const INPUT_MODES: { mode: InputMode; label: string }[] = [
 
 const btn = 'flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors';
 
-export default function ControlBar() {
+type Props = {
+  onRequestNewGame: (difficulty: Difficulty, mode: GameMode) => void;
+};
+
+export default function ControlBar({ onRequestNewGame }: Props) {
   const undo = useGameStore((s) => s.undo);
   const redo = useGameStore((s) => s.redo);
   const eraseCell = useGameStore((s) => s.eraseCell);
   const autoNote = useGameStore((s) => s.autoNote);
   const inputMode = useGameStore((s) => s.inputMode);
   const setInputMode = useGameStore((s) => s.setInputMode);
-  const newGame = useGameStore((s) => s.newGame);
   const difficulty = useGameStore((s) => s.difficulty);
   const mode = useGameStore((s) => s.mode);
   const historyIndex = useGameStore((s) => s.historyIndex);
@@ -42,7 +45,7 @@ export default function ControlBar() {
           className={`${btn} bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300`}>
           Auto Note
         </button>
-        <button onClick={() => newGame(difficulty, mode)}
+        <button onClick={() => onRequestNewGame(difficulty, mode)}
           className={`${btn} bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300`}>
           New Game
         </button>
