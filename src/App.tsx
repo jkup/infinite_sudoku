@@ -1,22 +1,94 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useGameStore } from './store/gameStore';
+import { useKeyboard } from './hooks/useKeyboard';
+import Board from './components/board/Board';
+import DigitBar from './components/board/DigitBar';
+import ControlBar from './components/controls/ControlBar';
+import Timer from './components/controls/Timer';
+import DifficultyPicker from './components/controls/DifficultyPicker';
 
-function Home() {
+function GameScreen() {
+  const newGame = useGameStore((s) => s.newGame);
+  const puzzle = useGameStore((s) => s.puzzle);
+  const status = useGameStore((s) => s.status);
+  const difficulty = useGameStore((s) => s.difficulty);
+
+  useKeyboard();
+
+  // Start a game on first load
+  useEffect(() => {
+    if (!puzzle) {
+      newGame('easy');
+    }
+  }, [puzzle, newGame]);
+
+  if (!puzzle) return null;
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white">
-      <h1 className="text-4xl font-bold text-gray-900 mb-4">
-        Infinite Sudoku
-      </h1>
-      <p className="text-gray-500 text-lg">Coming soon...</p>
+    <div className="flex flex-col items-center min-h-screen bg-white px-4 py-6">
+      {/* Header */}
+      <div className="w-full max-w-[min(90vw,500px)] mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-xl font-bold text-slate-800">Infinite Sudoku</h1>
+          <Timer />
+        </div>
+        <DifficultyPicker />
+      </div>
+
+      {/* Board */}
+      <Board />
+
+      {/* Controls */}
+      <ControlBar />
+
+      {/* Digit input */}
+      <DigitBar />
+
+      {/* Completion overlay */}
+      {status === 'completed' && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4">
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+              Puzzle Complete!
+            </h2>
+            <p className="text-slate-500 mb-6">
+              Great job solving this {difficulty} puzzle!
+            </p>
+            <button
+              onClick={() => newGame(difficulty)}
+              className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors"
+            >
+              New Game
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Paused overlay */}
+      {status === 'paused' && (
+        <div className="fixed inset-0 bg-white/90 flex items-center justify-center z-50">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">Paused</h2>
+            <button
+              onClick={() => useGameStore.getState().resumeGame()}
+              className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors"
+            >
+              Resume
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<GameScreen />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }

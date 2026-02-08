@@ -1,5 +1,4 @@
 import type { Digit, Grid, CellPosition } from './types';
-import { getBox } from './types';
 
 export type Conflict = {
   position: CellPosition;

@@ -1,7 +1,6 @@
 import type { Digit, Difficulty, Puzzle } from './types';
 import { DIGITS, DIFFICULTY_ORDER } from './types';
 import {
-  solveBruteForce,
   solveWithLogic,
   techniqueToDifficulty,
   hasUniqueSolution,

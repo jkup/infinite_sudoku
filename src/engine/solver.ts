@@ -4,18 +4,18 @@ import { type Digit, DIGITS, getBox } from './types';
  * Technique levels used for difficulty classification.
  * A puzzle's difficulty = the hardest technique required to solve it.
  */
-export enum Technique {
-  NakedSingle = 1,      // Only one candidate left in a cell
-  HiddenSingle = 2,     // Only one place for a digit in a row/col/box
-  PointingPair = 3,     // Candidates in a box aligned in a row/col
-  BoxLineReduction = 3, // Candidates in a row/col confined to one box
-  NakedPair = 4,        // Two cells in a unit with same two candidates
-  HiddenPair = 4,       // Two candidates only appear in two cells of a unit
-  NakedTriple = 4,      // Three cells in a unit sharing three candidates
-  XWing = 5,            // Two rows where a digit appears in exactly the same two columns
-  Swordfish = 5,        // Three rows where a digit appears in same three columns
-  YWing = 5,            // Bent triple chain elimination
-}
+export const Technique = {
+  NakedSingle: 1,      // Only one candidate left in a cell
+  HiddenSingle: 2,     // Only one place for a digit in a row/col/box
+  PointingPair: 3,     // Candidates in a box aligned in a row/col
+  BoxLineReduction: 3, // Candidates in a row/col confined to one box
+  NakedPair: 4,        // Two cells in a unit with same two candidates
+  HiddenPair: 4,       // Two candidates only appear in two cells of a unit
+  NakedTriple: 4,      // Three cells in a unit sharing three candidates
+  XWing: 5,            // Two rows where a digit appears in exactly the same two columns
+  Swordfish: 5,        // Three rows where a digit appears in same three columns
+  YWing: 5,            // Bent triple chain elimination
+} as const;
 
 export type SolveResult = {
   solved: boolean;
