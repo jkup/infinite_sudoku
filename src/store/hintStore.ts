@@ -11,7 +11,7 @@ import type {
   HistoryEntry,
 } from '../engine/types';
 import { DIFFICULTY_ORDER, gridFromValues } from '../engine/types';
-import { generatePuzzle } from '../engine/generator';
+import { generatePuzzleAsync } from '../engine/generateAsync';
 import { findConflicts } from '../engine/validator';
 import { useGameStore } from './gameStore';
 
@@ -33,14 +33,18 @@ export type StackEntry = {
   hintDigit: Digit;       // The answer for that cell
 };
 
+export type TransitionDirection = 'deeper' | 'back' | null;
+
 type HintState = {
   stack: StackEntry[];
+  transition: TransitionDirection;
 
   // Actions
   requestHint: () => void;
   completeHintPuzzle: () => void;
   abandonHintPuzzle: () => void;
   abandonToLevel: (level: number) => void;
+  clearTransition: () => void;
 };
 
 function cloneGrid(grid: Grid): Grid {
@@ -67,6 +71,9 @@ function cloneHistory(history: HistoryEntry[]): HistoryEntry[] {
 
 export const useHintStore = create<HintState>((set, get) => ({
   stack: [],
+  transition: null,
+
+  clearTransition: () => set({ transition: null }),
 
   requestHint: () => {
     const game = useGameStore.getState();
@@ -111,37 +118,40 @@ export const useHintStore = create<HintState>((set, get) => ({
       hintDigit,
     };
 
-    // Generate an easier puzzle
+    // Generate an easier puzzle (off main thread when possible)
     const easierDifficulty = DIFFICULTY_ORDER[currentDiffIndex - 1];
-    const hintPuzzle = generatePuzzle(easierDifficulty, game.mode);
-    const hintGrid = gridFromValues(hintPuzzle.initial, true);
 
-    // Push onto stack
-    set({ stack: [...get().stack, snapshot] });
+    // Push onto stack immediately
+    set({ stack: [...get().stack, snapshot], transition: 'deeper' });
 
-    // Clear the timer interval and start a fresh one for the hint puzzle
-    if (game.timerInterval) clearInterval(game.timerInterval);
-    const interval = setInterval(() => {
-      const state = useGameStore.getState();
-      if (state.status === 'playing') {
-        useGameStore.setState({ elapsedMs: state.elapsedMs + 1000 });
-      }
-    }, 1000);
+    generatePuzzleAsync(easierDifficulty, game.mode).then((hintPuzzle) => {
+      const hintGrid = gridFromValues(hintPuzzle.initial, true);
 
-    // Load the hint puzzle into the game store
-    useGameStore.setState({
-      grid: hintGrid,
-      puzzle: hintPuzzle,
-      mode: game.mode,
-      difficulty: easierDifficulty,
-      status: 'playing',
-      selectedCell: null,
-      inputMode: 'digit',
-      history: [],
-      historyIndex: -1,
-      elapsedMs: 0,
-      timerInterval: interval,
-      conflicts: new Map(),
+      // Clear the timer interval and start a fresh one for the hint puzzle
+      const prevInterval = useGameStore.getState().timerInterval;
+      if (prevInterval) clearInterval(prevInterval);
+      const interval = setInterval(() => {
+        const state = useGameStore.getState();
+        if (state.status === 'playing') {
+          useGameStore.setState({ elapsedMs: state.elapsedMs + 1000 });
+        }
+      }, 1000);
+
+      // Load the hint puzzle into the game store
+      useGameStore.setState({
+        grid: hintGrid,
+        puzzle: hintPuzzle,
+        mode: game.mode,
+        difficulty: easierDifficulty,
+        status: 'playing',
+        selectedCell: null,
+        inputMode: 'digit',
+        history: [],
+        historyIndex: -1,
+        elapsedMs: 0,
+        timerInterval: interval,
+        conflicts: new Map(),
+      });
     });
   },
 
@@ -160,7 +170,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     target.cornerNotes.clear();
     target.centerNotes.clear();
 
-    set({ stack: newStack });
+    set({ stack: newStack, transition: 'back' });
 
     // Restore parent game state with the hint applied
     const prevInterval = useGameStore.getState().timerInterval;
@@ -201,7 +211,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     const parent = stack[stack.length - 1];
     const newStack = stack.slice(0, -1);
 
-    set({ stack: newStack });
+    set({ stack: newStack, transition: 'back' });
 
     // Restore parent game state as-is
     const prevInterval = useGameStore.getState().timerInterval;
@@ -237,7 +247,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     const target = stack[level];
     const newStack = stack.slice(0, level);
 
-    set({ stack: newStack });
+    set({ stack: newStack, transition: 'back' });
 
     const prevInterval = useGameStore.getState().timerInterval;
     if (prevInterval) clearInterval(prevInterval);

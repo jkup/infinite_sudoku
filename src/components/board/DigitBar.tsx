@@ -16,7 +16,7 @@ export default function DigitBar() {
   }
 
   return (
-    <div className="grid grid-cols-9 gap-1 w-full max-w-[min(95vw,500px)] mx-auto mt-1.5">
+    <div className="grid grid-cols-9 gap-1 w-full max-w-[min(95vw,500px)] mx-auto mt-1.5" role="group" aria-label="Digit input pad">
       {DIGITS.map((d) => {
         const complete = digitCounts.get(d)! >= 9;
         return (
@@ -24,6 +24,7 @@ export default function DigitBar() {
             key={d}
             onClick={() => placeDigit(d)}
             disabled={complete}
+            aria-label={`Place digit ${d}${complete ? ', all placed' : ''}`}
             className="py-3 rounded-lg text-2xl font-bold flex items-center justify-center transition-all duration-100"
             style={
               complete

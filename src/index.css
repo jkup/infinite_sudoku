@@ -156,3 +156,19 @@ body {
   --color-overlay-bg: rgba(0, 0, 0, 0.5);
   --color-card-bg: #ffffff;
 }
+
+/* Hint puzzle transition animations */
+@keyframes slide-in-from-right {
+  from { transform: translateX(60px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes slide-in-from-left {
+  from { transform: translateX(-60px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.board-slide-left {
+  animation: slide-in-from-right 0.3s ease-out;
+}
+.board-slide-right {
+  animation: slide-in-from-left 0.3s ease-out;
+}

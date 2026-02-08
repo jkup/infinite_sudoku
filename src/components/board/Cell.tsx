@@ -69,15 +69,24 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
 
   const hasNotes = cornerNotes.size > 0 || centerNotes.size > 0;
 
+  const notesLabel = cornerNotes.size > 0
+    ? `, notes ${[...cornerNotes].sort().join(' ')}`
+    : centerNotes.size > 0
+    ? `, center notes ${[...centerNotes].sort().join(' ')}`
+    : '';
+
   return (
     <div
       className="relative flex items-center justify-center cursor-pointer select-none aspect-square transition-colors duration-75 active:brightness-95"
       style={borderStyle}
       onClick={() => onClick(position)}
+      tabIndex={isSelected ? 0 : -1}
       role="gridcell"
+      aria-selected={isSelected}
+      aria-invalid={isConflict || undefined}
       aria-label={`Row ${row + 1}, Column ${col + 1}${
         digit ? `, value ${digit}` : ', empty'
-      }${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
+      }${notesLabel}${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
     >
       {/* Killer cage sum label */}
       {cageSum !== null && (

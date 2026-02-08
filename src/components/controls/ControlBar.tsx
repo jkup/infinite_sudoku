@@ -63,6 +63,7 @@ export default function ControlBar({ onRequestNewGame }: Props) {
           <button
             key={m}
             onClick={() => setInputMode(m)}
+            aria-pressed={inputMode === m}
             className={btnBase}
             style={
               inputMode === m

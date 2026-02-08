@@ -14,10 +14,11 @@ export default function Timer() {
   const resumeGame = useGameStore((s) => s.resumeGame);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2" role="status" aria-label="Game timer">
       <span
         className="text-lg font-mono font-semibold tabular-nums"
         style={{ color: 'var(--color-text)' }}
+        aria-label={`Elapsed time: ${formatTime(elapsedMs)}`}
       >
         {formatTime(elapsedMs)}
       </span>
@@ -27,6 +28,7 @@ export default function Timer() {
           className="text-sm transition-colors"
           style={{ color: 'var(--color-text-muted)' }}
           title="Pause (Space)"
+          aria-label="Pause game"
         >
           ⏸
         </button>
@@ -37,6 +39,7 @@ export default function Timer() {
           className="text-sm transition-colors"
           style={{ color: 'var(--color-text-muted)' }}
           title="Resume (Space)"
+          aria-label="Resume game"
         >
           ▶
         </button>

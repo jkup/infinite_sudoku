@@ -15,6 +15,7 @@ import PuzzleStack from './components/hint/PuzzleStack';
 import ConfirmModal from './components/ui/ConfirmModal';
 import KeyboardHelp from './components/ui/KeyboardHelp';
 import Onboarding from './components/ui/Onboarding';
+import Confetti from './components/ui/Confetti';
 import UserButton from './components/auth/UserButton';
 import StatsPanel from './components/stats/StatsPanel';
 
@@ -173,10 +174,25 @@ function GameScreen() {
 
   const hintStack = useHintStore((s) => s.stack);
   const completeHintPuzzle = useHintStore((s) => s.completeHintPuzzle);
+  const hintTransition = useHintStore((s) => s.transition);
+  const clearTransition = useHintStore((s) => s.clearTransition);
   const isInHintStack = hintStack.length > 0;
 
   const [pendingGame, setPendingGame] = useState<{ difficulty: Difficulty; mode: GameMode } | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [boardAnim, setBoardAnim] = useState<string | null>(null);
+
+  // Trigger board slide animation on hint transitions
+  useEffect(() => {
+    if (!hintTransition) return;
+    const cls = hintTransition === 'deeper' ? 'board-slide-left' : 'board-slide-right';
+    setBoardAnim(cls);
+    const timer = setTimeout(() => {
+      setBoardAnim(null);
+      clearTransition();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [hintTransition, clearTransition]);
 
   useKeyboard(useCallback(() => setShowKeyboardHelp((v) => !v), []));
 
@@ -214,7 +230,7 @@ function GameScreen() {
   if (!puzzle) return null;
 
   return (
-    <div
+    <main
       className="flex flex-col items-center min-h-screen px-4 py-3 transition-colors duration-200"
       style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
     >
@@ -237,7 +253,9 @@ function GameScreen() {
       <PuzzleStack />
 
       {/* Board */}
-      <Board />
+      <div className={boardAnim ?? ''}>
+        <Board />
+      </div>
 
       {/* Controls */}
       <ControlBar onRequestNewGame={requestNewGame} />
@@ -262,7 +280,7 @@ function GameScreen() {
 
       {/* Completion overlay — different for hint puzzles vs regular */}
       {status === 'completed' && isInHintStack && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }}>
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Hint earned">
           <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127881;</div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
@@ -283,7 +301,9 @@ function GameScreen() {
       )}
 
       {status === 'completed' && !isInHintStack && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }}>
+        <>
+        <Confetti />
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Puzzle complete">
           <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127942;</div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
@@ -301,6 +321,7 @@ function GameScreen() {
             </button>
           </div>
         </div>
+        </>
       )}
 
       {/* Paused overlay */}
@@ -308,6 +329,7 @@ function GameScreen() {
         <div
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{ backgroundColor: 'var(--color-overlay-bg)' }}
+          role="dialog" aria-modal="true" aria-label="Game paused"
         >
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-text)' }}>Paused</h2>
@@ -343,7 +365,7 @@ function GameScreen() {
           </a>
         </p>
       </footer>
-    </div>
+    </main>
   );
 }
 

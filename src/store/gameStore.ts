@@ -12,12 +12,16 @@ import type {
   HistoryEntry,
 } from '../engine/types';
 import { gridFromValues, DIGITS } from '../engine/types';
-import { generatePuzzle } from '../engine/generator';
+import { generatePuzzleAsync } from '../engine/generateAsync';
 import { findConflicts, getPeers } from '../engine/validator';
 import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame } from '../lib/persistence';
 import { postGameResult } from '../lib/api';
 import { calculateScore } from '../lib/scoring';
+
+function vibrate(ms: number | number[] = 10) {
+  try { navigator.vibrate?.(ms); } catch { /* unsupported */ }
+}
 
 type GameState = {
   // Core state
@@ -126,29 +130,31 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { timerInterval } = get();
     if (timerInterval) clearInterval(timerInterval);
 
-    const puzzle = generatePuzzle(difficulty, mode);
-    const grid = gridFromValues(puzzle.initial, true);
+    // Try async (Web Worker) generation, fall back to sync
+    generatePuzzleAsync(difficulty, mode).then((puzzle) => {
+      const grid = gridFromValues(puzzle.initial, true);
 
-    const interval = setInterval(() => {
-      const state = get();
-      if (state.status === 'playing') {
-        set({ elapsedMs: state.elapsedMs + 1000 });
-      }
-    }, 1000);
+      const interval = setInterval(() => {
+        const state = get();
+        if (state.status === 'playing') {
+          set({ elapsedMs: state.elapsedMs + 1000 });
+        }
+      }, 1000);
 
-    set({
-      grid,
-      puzzle,
-      mode,
-      difficulty,
-      status: 'playing',
-      selectedCell: null,
-      inputMode: 'digit',
-      history: [],
-      historyIndex: -1,
-      elapsedMs: 0,
-      timerInterval: interval,
-      conflicts: new Map(),
+      set({
+        grid,
+        puzzle,
+        mode,
+        difficulty,
+        status: 'playing',
+        selectedCell: null,
+        inputMode: 'digit',
+        history: [],
+        historyIndex: -1,
+        elapsedMs: 0,
+        timerInterval: interval,
+        conflicts: new Map(),
+      });
     });
   },
 
@@ -183,6 +189,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       previousCenterNotes: new Set(target.centerNotes),
       newCenterNotes: new Set(target.centerNotes),
     };
+
+    vibrate();
 
     if (target.digit === digit) {
       // Toggle off
@@ -240,6 +248,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     if (isComplete) {
+      vibrate([50, 50, 50, 50, 100]);
       const { timerInterval, mode, difficulty, elapsedMs } = get();
       if (timerInterval) clearInterval(timerInterval);
       saveToCloud({ mode, difficulty, elapsedMs });
@@ -254,6 +263,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const cell = grid[row][col];
     if (cell.isGiven) return;
     if (cell.digit === null && cell.cornerNotes.size === 0 && cell.centerNotes.size === 0) return;
+
+    vibrate();
 
     const newGrid = cloneGrid(grid);
     const target = newGrid[row][col];

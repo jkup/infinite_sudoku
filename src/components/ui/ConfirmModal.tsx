@@ -20,6 +20,7 @@ export default function ConfirmModal({
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'var(--color-overlay-bg)' }}
       onClick={onCancel}
+      role="dialog" aria-modal="true" aria-label={title}
     >
       <div
         className="rounded-2xl p-6 shadow-xl max-w-sm mx-4 text-center"
