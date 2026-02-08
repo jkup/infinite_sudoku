@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-board-border: #1e293b;
+  --color-cell-border: #cbd5e1;
+  --color-cell-selected: #bfdbfe;
+  --color-cell-highlighted: #dbeafe;
+  --color-cell-conflict: #fecaca;
+  --color-cell-given: #f1f5f9;
+  --color-digit-given: #1e293b;
+  --color-digit-placed: #3b82f6;
+  --color-digit-error: #ef4444;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+}
