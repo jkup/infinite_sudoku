@@ -94,7 +94,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
       {cageSum !== null && (
         <span
           className="absolute top-1 left-1 z-20 leading-none font-bold"
-          style={{ fontSize: 'clamp(0.5rem, 2.4cqi, 0.8rem)', color: 'var(--color-text)' }}
+          style={{ fontSize: 'clamp(0.4rem, 1.8cqi, 0.65rem)', color: 'var(--color-text)' }}
         >
           {cageSum}
         </span>
