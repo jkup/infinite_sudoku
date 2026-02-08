@@ -189,6 +189,21 @@ function GameScreen() {
           </div>
         </div>
       )}
+
+      {/* Footer */}
+      <footer className="mt-8 mb-2 text-center text-xs text-slate-400">
+        <p>Made with &#10084;&#65039; by jkup</p>
+        <p className="mt-1">
+          <a
+            href="https://github.com/jkup/infinite_sudoku/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-slate-600 transition-colors"
+          >
+            File an issue or feature request
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
