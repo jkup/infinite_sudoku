@@ -60,13 +60,12 @@ export default function Board() {
   return (
     <div
       className="relative w-full max-w-[min(95vw,500px)] mx-auto"
-      style={{ containerType: 'inline-size' }}
+      style={{ containerType: 'inline-size', border: '2px solid var(--color-board-border)' }}
     >
       <div
         className="grid grid-cols-9"
         role="grid"
         aria-label="Sudoku board"
-        style={{ border: '2px solid var(--color-board-border)' }}
       >
         {grid.flat().map((cell) => {
           const { row, col } = cell.position;

@@ -50,13 +50,15 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
     : 'var(--color-digit-placed)';
 
   // Border styles
-  // In killer mode, all cells get a uniform thin border — the SVG cage overlay shows cage structure
+  // In killer mode: faint cell grid + thick solid box boundaries; cage dashes come from SVG overlay
+  const killerFaint = '1px solid color-mix(in srgb, var(--color-cell-border) 40%, transparent)';
+  const killerThick = '2px solid var(--color-board-border)';
   const borderStyle: CSSProperties = isKillerMode
     ? {
-        borderTop:    '1px solid var(--color-cell-border)',
-        borderLeft:   '1px solid var(--color-cell-border)',
-        borderRight:  col === 8 ? '1px solid var(--color-cell-border)' : 'none',
-        borderBottom: row === 8 ? '1px solid var(--color-cell-border)' : 'none',
+        borderTop:    row % 3 === 0 && row !== 0 ? killerThick : killerFaint,
+        borderLeft:   col % 3 === 0 && col !== 0 ? killerThick : killerFaint,
+        borderRight:  col === 8 ? killerFaint : 'none',
+        borderBottom: row === 8 ? killerFaint : 'none',
         backgroundColor: bgColor,
       }
     : {
@@ -91,7 +93,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
       {/* Killer cage sum label */}
       {cageSum !== null && (
         <span
-          className="absolute top-0 left-0.5 z-20 leading-none font-bold"
+          className="absolute top-1 left-1 z-20 leading-none font-bold"
           style={{ fontSize: 'clamp(0.5rem, 2.4cqi, 0.8rem)', color: 'var(--color-text)' }}
         >
           {cageSum}
