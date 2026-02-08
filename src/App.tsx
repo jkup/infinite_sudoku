@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect, useState, useCallback } from 'react';
+import { ClerkProvider } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
 import { useKeyboard } from './hooks/useKeyboard';
@@ -12,6 +13,11 @@ import DifficultyPicker from './components/controls/DifficultyPicker';
 import ModePicker from './components/controls/ModePicker';
 import PuzzleStack from './components/hint/PuzzleStack';
 import ConfirmModal from './components/ui/ConfirmModal';
+import UserButton from './components/auth/UserButton';
+import StatsPanel from './components/stats/StatsPanel';
+
+// Check both names: VITE_CLERK_PUBLISHABLE_KEY (local dev) and CLERK_PUBLIC (Cloudflare production)
+const CLERK_KEY = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.CLERK_PUBLIC) as string | undefined;
 
 function GameScreen() {
   const newGame = useGameStore((s) => s.newGame);
@@ -60,6 +66,8 @@ function GameScreen() {
     }
   }, [pendingGame, newGame]);
 
+  const [showStats, setShowStats] = useState(false);
+
   if (!puzzle) return null;
 
   return (
@@ -68,13 +76,35 @@ function GameScreen() {
       <div className="w-full max-w-[min(90vw,500px)] mb-4">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold text-slate-800">Infinite Sudoku</h1>
-          <Timer />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className="px-3 py-1.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Stats
+            </button>
+            {CLERK_KEY && <UserButton />}
+            <Timer />
+          </div>
         </div>
         <div className="flex items-center justify-between flex-wrap gap-2">
           <ModePicker onRequestNewGame={requestNewGame} />
           <DifficultyPicker onRequestNewGame={requestNewGame} />
         </div>
       </div>
+
+      {/* Stats panel */}
+      {showStats && (
+        <div className="w-full max-w-[min(90vw,500px)] mb-4">
+          {CLERK_KEY ? (
+            <StatsPanel />
+          ) : (
+            <div className="text-center text-slate-400 text-sm py-6">
+              Sign in to track your stats across devices.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Hint puzzle stack indicator */}
       <PuzzleStack />
@@ -164,11 +194,22 @@ function GameScreen() {
 }
 
 export default function App() {
-  return (
+  const router = (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<GameScreen />} />
       </Routes>
     </BrowserRouter>
+  );
+
+  // Graceful fallback: if no Clerk key, render without auth
+  if (!CLERK_KEY) {
+    return router;
+  }
+
+  return (
+    <ClerkProvider publishableKey={CLERK_KEY}>
+      {router}
+    </ClerkProvider>
   );
 }

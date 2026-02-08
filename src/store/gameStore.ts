@@ -14,6 +14,8 @@ import { gridFromValues, DIGITS } from '../engine/types';
 import { generatePuzzle } from '../engine/generator';
 import { findConflicts, getPeers } from '../engine/validator';
 import { saveGame, loadGame } from '../lib/persistence';
+import { postGameResult } from '../lib/api';
+import { calculateScore } from '../lib/scoring';
 
 type GameState = {
   // Core state
@@ -75,6 +77,33 @@ function checkCompletion(grid: Grid): boolean {
     }
   }
   return findConflicts(grid).size === 0;
+}
+
+/** Fire-and-forget cloud save when a game completes */
+function saveToCloud(state: {
+  mode: GameMode;
+  difficulty: Difficulty;
+  elapsedMs: number;
+}): void {
+  const score = calculateScore({
+    difficulty: state.difficulty,
+    mode: state.mode,
+    solveTimeMs: state.elapsedMs,
+    hintsUsed: 0,
+    errorsMade: 0,
+  });
+
+  postGameResult({
+    mode: state.mode,
+    difficulty: state.difficulty,
+    solveTimeMs: state.elapsedMs,
+    hintsUsed: 0,
+    maxHintDepth: 0,
+    errorsMade: 0,
+    score,
+  }).catch(() => {
+    // Cloud save is best-effort — fail silently
+  });
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -180,8 +209,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     if (isComplete) {
-      const { timerInterval } = get();
+      const { timerInterval, mode, difficulty, elapsedMs } = get();
       if (timerInterval) clearInterval(timerInterval);
+      saveToCloud({ mode, difficulty, elapsedMs });
     }
   },
 
@@ -375,6 +405,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       conflicts,
       status: isComplete ? 'completed' : 'playing',
     });
+
+    if (isComplete) {
+      const { mode, difficulty, elapsedMs } = get();
+      saveToCloud({ mode, difficulty, elapsedMs });
+    }
   },
 
   tick: () => {
