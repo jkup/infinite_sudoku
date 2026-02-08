@@ -1,5 +1,6 @@
 import { useGameStore } from '../../store/gameStore';
 import type { Difficulty, GameMode, InputMode } from '../../engine/types';
+import HintButton from '../hint/HintButton';
 
 const INPUT_MODES: { mode: InputMode; label: string }[] = [
   { mode: 'digit', label: 'Digit' },
@@ -51,7 +52,7 @@ export default function ControlBar({ onRequestNewGame }: Props) {
         </button>
       </div>
 
-      {/* Row 2: Input mode */}
+      {/* Row 2: Input mode + Hint */}
       <div className="flex items-center gap-2">
         {INPUT_MODES.map(({ mode: m, label }) => (
           <button
@@ -66,6 +67,7 @@ export default function ControlBar({ onRequestNewGame }: Props) {
             {label}
           </button>
         ))}
+        <HintButton />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useHintStore } from '../store/hintStore';
 import type { Digit } from '../engine/types';
 
 export function useKeyboard() {
@@ -84,6 +85,13 @@ export function useKeyboard() {
       if (e.key === ' ') {
         if (state.status === 'playing') state.pauseGame();
         else if (state.status === 'paused') state.resumeGame();
+        e.preventDefault();
+        return;
+      }
+
+      // H — request hint
+      if (e.key === 'h' || e.key === 'H') {
+        useHintStore.getState().requestHint();
         e.preventDefault();
         return;
       }

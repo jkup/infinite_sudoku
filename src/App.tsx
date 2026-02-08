@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from './store/gameStore';
+import { useHintStore } from './store/hintStore';
 import { useKeyboard } from './hooks/useKeyboard';
 import type { Difficulty, GameMode } from './engine/types';
 import Board from './components/board/Board';
@@ -9,6 +10,7 @@ import ControlBar from './components/controls/ControlBar';
 import Timer from './components/controls/Timer';
 import DifficultyPicker from './components/controls/DifficultyPicker';
 import ModePicker from './components/controls/ModePicker';
+import PuzzleStack from './components/hint/PuzzleStack';
 import ConfirmModal from './components/ui/ConfirmModal';
 
 function GameScreen() {
@@ -18,6 +20,10 @@ function GameScreen() {
   const difficulty = useGameStore((s) => s.difficulty);
   const mode = useGameStore((s) => s.mode);
   const historyIndex = useGameStore((s) => s.historyIndex);
+
+  const hintStack = useHintStore((s) => s.stack);
+  const completeHintPuzzle = useHintStore((s) => s.completeHintPuzzle);
+  const isInHintStack = hintStack.length > 0;
 
   const [pendingGame, setPendingGame] = useState<{ difficulty: Difficulty; mode: GameMode } | null>(null);
 
@@ -38,15 +44,17 @@ function GameScreen() {
   // Request a new game — confirm if the current game has progress
   const requestNewGame = useCallback((d: Difficulty, m: GameMode) => {
     const hasProgress = historyIndex >= 0 && status === 'playing';
-    if (hasProgress) {
+    if (hasProgress || isInHintStack) {
       setPendingGame({ difficulty: d, mode: m });
     } else {
       newGame(d, m);
     }
-  }, [historyIndex, status, newGame]);
+  }, [historyIndex, status, newGame, isInHintStack]);
 
   const confirmNewGame = useCallback(() => {
     if (pendingGame) {
+      // Clear the hint stack when starting a fresh game
+      useHintStore.setState({ stack: [] });
       newGame(pendingGame.difficulty, pendingGame.mode);
       setPendingGame(null);
     }
@@ -68,6 +76,9 @@ function GameScreen() {
         </div>
       </div>
 
+      {/* Hint puzzle stack indicator */}
+      <PuzzleStack />
+
       {/* Board */}
       <Board />
 
@@ -81,7 +92,10 @@ function GameScreen() {
       {pendingGame && (
         <ConfirmModal
           title="Start new game?"
-          message="Your current progress will be lost."
+          message={isInHintStack
+            ? "You're in a hint puzzle. Starting a new game will discard all progress including parent puzzles."
+            : "Your current progress will be lost."
+          }
           confirmLabel="New Game"
           cancelLabel="Keep Playing"
           onConfirm={confirmNewGame}
@@ -89,10 +103,32 @@ function GameScreen() {
         />
       )}
 
-      {/* Completion overlay */}
-      {status === 'completed' && (
+      {/* Completion overlay — different for hint puzzles vs regular */}
+      {status === 'completed' && isInHintStack && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4">
+            <div className="text-4xl mb-3">&#127881;</div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+              Hint Earned!
+            </h2>
+            <p className="text-slate-500 mb-6">
+              Nice work! The answer will be revealed in your
+              {hintStack.length > 1 ? ' parent' : ''} puzzle.
+            </p>
+            <button
+              onClick={completeHintPuzzle}
+              className="px-6 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 active:bg-amber-700 transition-colors"
+            >
+              Claim Hint
+            </button>
+          </div>
+        </div>
+      )}
+
+      {status === 'completed' && !isInHintStack && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4">
+            <div className="text-4xl mb-3">&#127942;</div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">
               Puzzle Complete!
             </h2>
