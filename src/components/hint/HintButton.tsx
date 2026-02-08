@@ -27,13 +27,12 @@ export default function HintButton() {
         <button
           onClick={requestHint}
           disabled={!canHint}
-          className={`
-            flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-colors
-            ${canHint
-              ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 active:bg-amber-300'
-              : 'bg-slate-100 text-slate-400 cursor-default'
-            }
-          `}
+          className="flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-colors"
+          style={
+            canHint
+              ? { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }
+              : { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-text-muted)', cursor: 'default', opacity: 0.5 }
+          }
           title={
             !selectedCell
               ? 'Select an empty cell first'
@@ -46,7 +45,8 @@ export default function HintButton() {
         </button>
         <button
           onClick={() => setShowHelp(!showHelp)}
-          className="w-9 h-9 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 active:bg-slate-300 transition-colors text-sm font-bold flex-shrink-0 flex items-center justify-center"
+          className="w-9 h-9 rounded-lg text-sm font-bold flex-shrink-0 flex items-center justify-center transition-colors"
+          style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-text-muted)' }}
         >
           ?
         </button>
@@ -56,9 +56,12 @@ export default function HintButton() {
       {showHelp && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowHelp(false)} />
-          <div className="absolute bottom-full right-0 mb-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 p-4 z-50">
-            <h3 className="font-bold text-slate-800 text-sm mb-2">How Hints Work</h3>
-            <div className="text-xs text-slate-600 space-y-2">
+          <div
+            className="absolute bottom-full right-0 mb-2 w-72 rounded-xl shadow-lg border p-4 z-50"
+            style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-cell-border)' }}
+          >
+            <h3 className="font-bold text-sm mb-2" style={{ color: 'var(--color-text)' }}>How Hints Work</h3>
+            <div className="text-xs space-y-2" style={{ color: 'var(--color-text-muted)' }}>
               <p>
                 Select an empty cell and tap <strong>Hint</strong>. Instead of
                 just giving you the answer, you'll be challenged to solve a
@@ -80,7 +83,8 @@ export default function HintButton() {
             </div>
             <button
               onClick={() => setShowHelp(false)}
-              className="mt-3 text-xs font-medium text-blue-500 hover:text-blue-700"
+              className="mt-3 text-xs font-medium"
+              style={{ color: 'var(--color-digit-placed)' }}
             >
               Got it
             </button>

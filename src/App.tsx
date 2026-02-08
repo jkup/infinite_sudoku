@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
+import { useThemeStore, type Theme } from './store/themeStore';
 import { useKeyboard } from './hooks/useKeyboard';
 import type { Difficulty, GameMode } from './engine/types';
 import Board from './components/board/Board';
@@ -18,6 +19,38 @@ import StatsPanel from './components/stats/StatsPanel';
 
 // Check both names: VITE_CLERK_PUBLISHABLE_KEY (local dev) and CLERK_PUBLIC (Cloudflare production)
 const CLERK_KEY = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.CLERK_PUBLIC) as string | undefined;
+
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'newspaper', label: 'Newspaper' },
+  { value: 'high-contrast', label: 'High Contrast' },
+];
+
+function ThemePicker() {
+  const theme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
+
+  return (
+    <select
+      value={theme}
+      onChange={(e) => setTheme(e.target.value as Theme)}
+      className="text-sm font-medium rounded-lg px-2 py-1.5 border cursor-pointer transition-colors"
+      style={{
+        backgroundColor: 'var(--color-btn-bg)',
+        color: 'var(--color-btn-text)',
+        borderColor: 'var(--color-cell-border)',
+      }}
+      aria-label="Theme"
+    >
+      {THEME_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 function GameScreen() {
   const newGame = useGameStore((s) => s.newGame);
@@ -71,15 +104,24 @@ function GameScreen() {
   if (!puzzle) return null;
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-white px-4 py-6">
+    <div
+      className="flex flex-col items-center min-h-screen px-4 py-6 transition-colors duration-200"
+      style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
+    >
       {/* Header */}
       <div className="w-full max-w-[min(90vw,500px)] mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-xl font-bold text-slate-800">Infinite Sudoku</h1>
+          <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>Infinite Sudoku</h1>
           <div className="flex items-center gap-2">
+            <ThemePicker />
             <button
               onClick={() => setShowStats(!showStats)}
-              className="px-3 py-1.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors"
+              style={{
+                color: 'var(--color-btn-text)',
+                borderColor: 'var(--color-cell-border)',
+                backgroundColor: 'var(--color-btn-bg)',
+              }}
             >
               Stats
             </button>
@@ -99,7 +141,7 @@ function GameScreen() {
           {CLERK_KEY ? (
             <StatsPanel />
           ) : (
-            <div className="text-center text-slate-400 text-sm py-6">
+            <div className="text-center text-sm py-6" style={{ color: 'var(--color-text-muted)' }}>
               Sign in to track your stats across devices.
             </div>
           )}
@@ -135,13 +177,13 @@ function GameScreen() {
 
       {/* Completion overlay — different for hint puzzles vs regular */}
       {status === 'completed' && isInHintStack && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }}>
+          <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127881;</div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
               Hint Earned!
             </h2>
-            <p className="text-slate-500 mb-6">
+            <p className="mb-6" style={{ color: 'var(--color-text-muted)' }}>
               Nice work! The answer will be revealed in your
               {hintStack.length > 1 ? ' parent' : ''} puzzle.
             </p>
@@ -156,18 +198,19 @@ function GameScreen() {
       )}
 
       {status === 'completed' && !isInHintStack && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }}>
+          <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127942;</div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
               Puzzle Complete!
             </h2>
-            <p className="text-slate-500 mb-6">
+            <p className="mb-6" style={{ color: 'var(--color-text-muted)' }}>
               Great job solving this {difficulty} {mode} puzzle!
             </p>
             <button
               onClick={() => newGame(difficulty, mode)}
-              className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors"
+              className="px-6 py-3 rounded-xl font-semibold transition-colors"
+              style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
             >
               New Game
             </button>
@@ -177,12 +220,16 @@ function GameScreen() {
 
       {/* Paused overlay */}
       {status === 'paused' && (
-        <div className="fixed inset-0 bg-white/90 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'var(--color-overlay-bg)' }}
+        >
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4">Paused</h2>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-text)' }}>Paused</h2>
             <button
               onClick={() => useGameStore.getState().resumeGame()}
-              className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors"
+              className="px-6 py-3 rounded-xl font-semibold transition-colors"
+              style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
             >
               Resume
             </button>
@@ -191,14 +238,15 @@ function GameScreen() {
       )}
 
       {/* Footer */}
-      <footer className="mt-8 mb-2 text-center text-xs text-slate-400">
+      <footer className="mt-8 mb-2 text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>
         <p>Made with &#10084;&#65039; by jkup</p>
         <p className="mt-1">
           <a
             href="https://github.com/jkup/infinite_sudoku/issues"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-slate-600 transition-colors"
+            className="underline transition-colors"
+            style={{ color: 'var(--color-text-muted)' }}
           >
             File an issue or feature request
           </a>

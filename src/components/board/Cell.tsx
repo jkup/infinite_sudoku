@@ -12,10 +12,6 @@ type CellProps = {
   onClick: (pos: CellPosition) => void;
 };
 
-// Border colors
-const MEDIUM = '#cbd5e1';    // slate-300
-const THICK = '#334155';     // slate-700
-
 /**
  * Fixed 3x3 grid positions for corner notes.
  * Digit 1 is always top-left, 5 always center, 9 always bottom-right.
@@ -39,35 +35,35 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
 
   // Background color
   let bgColor: string;
-  if (isSelected) bgColor = '#bfdbfe';       // blue-200
-  else if (isConflict) bgColor = '#fee2e2';   // red-100
-  else if (isDigitMatch) bgColor = '#dbeafe';  // blue-100
-  else if (isHighlighted) bgColor = '#f1f5f9'; // slate-100
-  else if (isGiven && !isKillerMode) bgColor = '#f1f5f9'; // slate-100 for given cells in classic
-  else bgColor = '#ffffff';
+  if (isSelected) bgColor = 'var(--color-cell-selected)';
+  else if (isConflict) bgColor = 'var(--color-cell-conflict)';
+  else if (isDigitMatch) bgColor = 'var(--color-cell-digit-match)';
+  else if (isHighlighted) bgColor = 'var(--color-cell-highlighted)';
+  else if (isGiven && !isKillerMode) bgColor = 'var(--color-cell-given)';
+  else bgColor = 'var(--color-cell-bg)';
 
   // Digit color
   const digitColor = isConflict
-    ? '#ef4444'    // red-500
+    ? 'var(--color-digit-error)'
     : isGiven
-    ? '#1e293b'    // slate-800
-    : '#3b82f6';   // blue-500
+    ? 'var(--color-digit-given)'
+    : 'var(--color-digit-placed)';
 
   // Border styles
   // In killer mode, cell borders are invisible — the SVG cage overlay provides all structure
   const borderStyle: CSSProperties = isKillerMode
     ? {
-        borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? '#94a3b8' : 'transparent'}`,
-        borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? '#94a3b8' : 'transparent'}`,
-        borderRight:  col === 8 ? '2px solid #94a3b8' : '1px solid transparent',
-        borderBottom: row === 8 ? '2px solid #94a3b8' : '1px solid transparent',
+        borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? 'var(--color-cell-border)' : 'transparent'}`,
+        borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? 'var(--color-cell-border)' : 'transparent'}`,
+        borderRight:  col === 8 ? '2px solid var(--color-cell-border)' : '1px solid transparent',
+        borderBottom: row === 8 ? '2px solid var(--color-cell-border)' : '1px solid transparent',
         backgroundColor: bgColor,
       }
     : {
-        borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? THICK : MEDIUM}`,
-        borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? THICK : MEDIUM}`,
-        borderRight:  col === 8 ? `2px solid ${THICK}` : `1px solid ${MEDIUM}`,
-        borderBottom: row === 8 ? `2px solid ${THICK}` : `1px solid ${MEDIUM}`,
+        borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
+        borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
+        borderRight:  col === 8 ? '2px solid var(--color-board-border)' : '1px solid var(--color-cell-border)',
+        borderBottom: row === 8 ? '2px solid var(--color-board-border)' : '1px solid var(--color-cell-border)',
         backgroundColor: bgColor,
       };
 
@@ -86,8 +82,8 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
       {/* Killer cage sum label */}
       {cageSum !== null && (
         <span
-          className="absolute top-0 left-0.5 z-20 leading-none font-bold text-slate-700"
-          style={{ fontSize: 'clamp(0.5rem, 2.4cqi, 0.8rem)' }}
+          className="absolute top-0 left-0.5 z-20 leading-none font-bold"
+          style={{ fontSize: 'clamp(0.5rem, 2.4cqi, 0.8rem)', color: 'var(--color-text)' }}
         >
           {cageSum}
         </span>
@@ -115,12 +111,13 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
               {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((d) => (
                 <span
                   key={d}
-                  className="text-slate-500 leading-none"
+                  className="leading-none"
                   style={{
                     fontSize: 'clamp(0.35rem, 1.6cqi, 0.6rem)',
                     gridRow: NOTE_GRID[d].gridRow,
                     gridColumn: NOTE_GRID[d].gridCol,
                     visibility: cornerNotes.has(d) ? 'visible' : 'hidden',
+                    color: 'var(--color-note)',
                   }}
                 >
                   {d}
@@ -132,8 +129,8 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
           {/* Center notes */}
           {centerNotes.size > 0 && cornerNotes.size === 0 && (
             <span
-              className="text-blue-400 leading-none"
-              style={{ fontSize: 'clamp(0.4rem, 1.8cqi, 0.65rem)' }}
+              className="leading-none"
+              style={{ fontSize: 'clamp(0.4rem, 1.8cqi, 0.65rem)', color: 'var(--color-digit-placed)' }}
             >
               {[...centerNotes].sort().join('')}
             </span>

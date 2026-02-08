@@ -8,8 +8,6 @@ const INPUT_MODES: { mode: InputMode; label: string }[] = [
   { mode: 'center', label: 'Center' },
 ];
 
-const btn = 'flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors';
-
 type Props = {
   onRequestNewGame: (difficulty: Difficulty, mode: GameMode) => void;
 };
@@ -26,28 +24,35 @@ export default function ControlBar({ onRequestNewGame }: Props) {
   const historyIndex = useGameStore((s) => s.historyIndex);
   const historyLength = useGameStore((s) => s.history.length);
 
+  const btnBase = 'flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors';
+
   return (
     <div className="w-full max-w-[min(90vw,500px)] mx-auto mt-3 flex flex-col gap-2">
       {/* Row 1: Actions */}
       <div className="flex items-center gap-2">
         <button onClick={undo} disabled={historyIndex < 0}
-          className={`${btn} bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-30 disabled:cursor-default`}>
+          className={`${btnBase} disabled:opacity-30 disabled:cursor-default`}
+          style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}>
           Undo
         </button>
         <button onClick={redo} disabled={historyIndex >= historyLength - 1}
-          className={`${btn} bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300 disabled:opacity-30 disabled:cursor-default`}>
+          className={`${btnBase} disabled:opacity-30 disabled:cursor-default`}
+          style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}>
           Redo
         </button>
         <button onClick={eraseCell}
-          className={`${btn} bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300`}>
+          className={btnBase}
+          style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}>
           Erase
         </button>
         <button onClick={autoNote}
-          className={`${btn} bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300`}>
+          className={btnBase}
+          style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}>
           Auto Note
         </button>
         <button onClick={() => onRequestNewGame(difficulty, mode)}
-          className={`${btn} bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300`}>
+          className={btnBase}
+          style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}>
           New Game
         </button>
       </div>
@@ -58,11 +63,12 @@ export default function ControlBar({ onRequestNewGame }: Props) {
           <button
             key={m}
             onClick={() => setInputMode(m)}
-            className={`${btn} ${
+            className={btnBase}
+            style={
               inputMode === m
-                ? 'bg-blue-500 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
-            }`}
+                ? { backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }
+                : { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }
+            }
           >
             {label}
           </button>

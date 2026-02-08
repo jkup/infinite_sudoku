@@ -20,14 +20,12 @@ export default function ModePicker({ onRequestNewGame }: Props) {
         <button
           key={m.mode}
           onClick={() => onRequestNewGame(difficulty, m.mode)}
-          className={`
-            px-4 py-1.5 rounded-lg text-sm font-medium transition-colors
-            ${
-              mode === m.mode
-                ? 'bg-indigo-500 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }
-          `}
+          className="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+          style={
+            mode === m.mode
+              ? { backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }
+              : { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }
+          }
           title={m.description}
         >
           {m.label}

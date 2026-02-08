@@ -24,16 +24,12 @@ export default function DigitBar() {
             key={d}
             onClick={() => placeDigit(d)}
             disabled={complete}
-            className={`
-              aspect-square rounded-lg text-xl font-bold
-              flex items-center justify-center
-              transition-all duration-100
-              ${
-                complete
-                  ? 'bg-slate-100 text-slate-300 cursor-default'
-                  : 'bg-slate-100 text-slate-700 hover:bg-blue-100 active:bg-blue-200 cursor-pointer'
-              }
-            `}
+            className="aspect-square rounded-lg text-xl font-bold flex items-center justify-center transition-all duration-100"
+            style={
+              complete
+                ? { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-cell-border)', cursor: 'default' }
+                : { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-text)', cursor: 'pointer' }
+            }
           >
             {d}
           </button>

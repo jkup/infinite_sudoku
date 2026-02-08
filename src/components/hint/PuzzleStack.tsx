@@ -19,15 +19,19 @@ export default function PuzzleStack() {
 
   return (
     <div className="w-full max-w-[min(90vw,500px)] mx-auto mb-3">
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+      <div
+        className="rounded-xl px-4 py-3 border"
+        style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-cell-border)' }}
+      >
         {/* Depth label */}
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
             Hint Puzzle — Depth {stack.length}
           </span>
           <button
             onClick={abandonHintPuzzle}
-            className="text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors"
+            className="text-xs font-medium transition-colors"
+            style={{ color: 'var(--color-text-muted)' }}
           >
             Give up &amp; go back
           </button>
@@ -39,20 +43,24 @@ export default function PuzzleStack() {
             <div key={i} className="flex items-center gap-1.5">
               <button
                 onClick={() => abandonToLevel(i)}
-                className="px-2.5 py-1 rounded-md bg-amber-100 text-amber-700 text-xs font-medium hover:bg-amber-200 transition-colors"
+                className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}
                 title={`Go back to this ${DIFF_LABELS[entry.difficulty]} puzzle (hint not earned)`}
               >
                 {DIFF_LABELS[entry.difficulty]}
               </button>
-              <span className="text-amber-400 text-xs">→</span>
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>→</span>
             </div>
           ))}
-          <span className="px-2.5 py-1 rounded-md bg-amber-200 text-amber-800 text-xs font-bold">
+          <span
+            className="px-2.5 py-1 rounded-md text-xs font-bold"
+            style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
+          >
             {DIFF_LABELS[currentDifficulty]}
           </span>
         </div>
 
-        <p className="text-xs text-amber-600 mt-2">
+        <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
           Solve this puzzle to earn your hint! Or click a level above to go back.
         </p>
       </div>

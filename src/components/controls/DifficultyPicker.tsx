@@ -24,14 +24,12 @@ export default function DifficultyPicker({ onRequestNewGame }: Props) {
         <button
           key={d}
           onClick={() => onRequestNewGame(d, mode)}
-          className={`
-            px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-            ${
-              difficulty === d
-                ? 'bg-blue-500 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }
-          `}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+          style={
+            difficulty === d
+              ? { backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }
+              : { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }
+          }
         >
           {LABELS[d]}
         </button>

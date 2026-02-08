@@ -52,7 +52,7 @@ export default function CageOverlay({ cages }: CageOverlayProps) {
           y1={line.y1}
           x2={line.x2}
           y2={line.y2}
-          stroke="#334155"
+          stroke="var(--color-cage-border)"
           strokeWidth="0.04"
           strokeDasharray="0.07 0.05"
         />

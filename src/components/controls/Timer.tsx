@@ -15,13 +15,17 @@ export default function Timer() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-lg font-mono font-semibold text-slate-700 tabular-nums">
+      <span
+        className="text-lg font-mono font-semibold tabular-nums"
+        style={{ color: 'var(--color-text)' }}
+      >
         {formatTime(elapsedMs)}
       </span>
       {status === 'playing' && (
         <button
           onClick={pauseGame}
-          className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+          className="text-sm transition-colors"
+          style={{ color: 'var(--color-text-muted)' }}
           title="Pause (Space)"
         >
           ⏸
@@ -30,7 +34,8 @@ export default function Timer() {
       {status === 'paused' && (
         <button
           onClick={resumeGame}
-          className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+          className="text-sm transition-colors"
+          style={{ color: 'var(--color-text-muted)' }}
           title="Resume (Space)"
         >
           ▶

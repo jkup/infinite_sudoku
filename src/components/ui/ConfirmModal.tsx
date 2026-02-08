@@ -16,23 +16,30 @@ export default function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={onCancel}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ backgroundColor: 'var(--color-overlay-bg)' }}
+      onClick={onCancel}
+    >
       <div
-        className="bg-white rounded-2xl p-6 shadow-xl max-w-sm mx-4 text-center"
+        className="rounded-2xl p-6 shadow-xl max-w-sm mx-4 text-center"
+        style={{ backgroundColor: 'var(--color-card-bg)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-slate-800 mb-2">{title}</h2>
-        <p className="text-slate-500 text-sm mb-5">{message}</p>
+        <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text)' }}>{title}</h2>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>{message}</p>
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-medium hover:bg-slate-200 active:bg-slate-300 transition-colors"
+            className="flex-1 py-2.5 rounded-xl font-medium transition-colors"
+            style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 active:bg-blue-700 transition-colors"
+            className="flex-1 py-2.5 rounded-xl font-medium transition-colors"
+            style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
           >
             {confirmLabel}
           </button>
