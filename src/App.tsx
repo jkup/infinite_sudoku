@@ -253,7 +253,7 @@ function GameScreen() {
       <PuzzleStack />
 
       {/* Board */}
-      <div className={boardAnim ?? ''}>
+      <div className={`w-full max-w-[min(95vw,500px)]${boardAnim ? ` ${boardAnim}` : ''}`}>
         <Board />
       </div>
 
