@@ -27,7 +27,7 @@ export default function ControlBar({ onRequestNewGame }: Props) {
   const btnBase = 'flex-1 py-2 rounded-lg text-sm font-medium transition-colors';
 
   return (
-    <div className="w-full max-w-[min(95vw,500px)] mx-auto mt-1.5 flex flex-col gap-1.5">
+    <div className="w-full max-w-[min(98vw,500px)] mx-auto mt-1.5 flex flex-col gap-1.5">
       {/* Row 1: Actions */}
       <div className="flex items-center gap-1.5">
         <button onClick={undo} disabled={historyIndex < 0}

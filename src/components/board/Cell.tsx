@@ -59,17 +59,17 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
   const killerThick = '2px solid var(--color-board-border)';
   const borderStyle: CSSProperties = isKillerMode
     ? {
-        borderTop:    row % boxRows === 0 && row !== 0 ? killerThick : killerFaint,
-        borderLeft:   col % boxCols === 0 && col !== 0 ? killerThick : killerFaint,
-        borderRight:  col === lastIdx ? killerFaint : 'none',
-        borderBottom: row === lastIdx ? killerFaint : 'none',
+        borderTop:    row === 0 ? 'none' : row % boxRows === 0 ? killerThick : killerFaint,
+        borderLeft:   col === 0 ? 'none' : col % boxCols === 0 ? killerThick : killerFaint,
+        borderRight:  col === lastIdx ? 'none' : 'none',
+        borderBottom: row === lastIdx ? 'none' : 'none',
         backgroundColor: bgColor,
       }
     : {
-        borderTop:    `${row % boxRows === 0 ? 2 : 1}px solid ${row % boxRows === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
-        borderLeft:   `${col % boxCols === 0 ? 2 : 1}px solid ${col % boxCols === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
-        borderRight:  col === lastIdx ? '2px solid var(--color-board-border)' : '1px solid var(--color-cell-border)',
-        borderBottom: row === lastIdx ? '2px solid var(--color-board-border)' : '1px solid var(--color-cell-border)',
+        borderTop:    row === 0 ? 'none' : `${row % boxRows === 0 ? 2 : 1}px solid ${row % boxRows === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
+        borderLeft:   col === 0 ? 'none' : `${col % boxCols === 0 ? 2 : 1}px solid ${col % boxCols === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
+        borderRight:  col === lastIdx ? 'none' : '1px solid var(--color-cell-border)',
+        borderBottom: row === lastIdx ? 'none' : '1px solid var(--color-cell-border)',
         backgroundColor: bgColor,
       };
 

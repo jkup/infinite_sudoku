@@ -20,7 +20,7 @@ export default function DigitBar() {
 
   return (
     <div
-      className="grid gap-1 w-full max-w-[min(95vw,500px)] mx-auto mt-1.5"
+      className="grid gap-1 w-full max-w-[min(98vw,500px)] mx-auto mt-1.5"
       style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
       role="group"
       aria-label="Digit input pad"

@@ -231,11 +231,11 @@ function GameScreen() {
 
   return (
     <main
-      className="flex flex-col items-center min-h-screen px-4 py-3 transition-colors duration-200"
+      className="flex flex-col items-center min-h-screen px-2 sm:px-4 py-3 transition-colors duration-200"
       style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
     >
       {/* Header */}
-      <div className="w-full max-w-[min(95vw,500px)] mb-1">
+      <div className="w-full max-w-[min(98vw,500px)] mb-1">
         <div className="flex items-center justify-center sm:justify-between gap-2 flex-wrap">
           <h1 className="hidden sm:block text-lg font-bold whitespace-nowrap" style={{ color: 'var(--color-text)' }}>
             Infinite Sudoku
@@ -253,7 +253,7 @@ function GameScreen() {
       <PuzzleStack />
 
       {/* Board */}
-      <div className={`w-full max-w-[min(95vw,500px)]${boardAnim ? ` ${boardAnim}` : ''}`}>
+      <div className={`w-full max-w-[min(98vw,500px)]${boardAnim ? ` ${boardAnim}` : ''}`}>
         <Board />
       </div>
 

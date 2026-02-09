@@ -60,8 +60,8 @@ export default function Board() {
 
   return (
     <div
-      className="relative w-full max-w-[min(95vw,500px)] mx-auto"
-      style={{ containerType: 'inline-size', border: '2px solid var(--color-board-border)' }}
+      className="relative w-full max-w-[min(98vw,500px)] mx-auto"
+      style={{ containerType: 'inline-size', border: '2px solid var(--color-board-border)', overflow: 'hidden' }}
     >
       <div
         className="grid"
