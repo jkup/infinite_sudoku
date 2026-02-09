@@ -163,11 +163,13 @@ export function loadGame(): {
 
     // Basic validation
     if (!data.grid || !data.puzzle || !data.puzzle.solution) return null;
-    if (data.grid.length !== 9) return null;
+    if (data.grid.length !== 9 && data.grid.length !== 6) return null;
+
+    const puzzle = { ...data.puzzle, gridSize: data.puzzle.gridSize ?? 9 };
 
     return {
       grid: deserializeGrid(data.grid),
-      puzzle: data.puzzle,
+      puzzle,
       mode: data.mode,
       difficulty: data.difficulty,
       status: data.status === 'completed' ? 'completed' : 'playing', // unpause on reload

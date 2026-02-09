@@ -11,7 +11,7 @@ import type {
   CellChange,
   HistoryEntry,
 } from '../engine/types';
-import { gridFromValues, DIGITS } from '../engine/types';
+import { gridFromValues, getDigitsForSize } from '../engine/types';
 import { generatePuzzleAsync } from '../engine/generateAsync';
 import { findConflicts, getPeers } from '../engine/validator';
 import { getCageForCell } from '../engine/killer';
@@ -77,8 +77,9 @@ function cloneGrid(grid: Grid): Grid {
 }
 
 function checkCompletion(grid: Grid): boolean {
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
+  const size = grid.length;
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       if (grid[r][c].digit === null) return false;
     }
   }
@@ -204,7 +205,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       primaryChange.newCenterNotes = new Set();
 
       // Auto-remove this digit from notes in all peer cells
-      for (const peer of getPeers(row, col)) {
+      for (const peer of getPeers(row, col, grid.length)) {
         const peerCell = newGrid[peer.row][peer.col];
         if (peerCell.digit !== null) continue;
         const hadCorner = peerCell.cornerNotes.has(digit);
@@ -352,20 +353,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     const cages = puzzle?.cages;
     const changes: CellChange[] = [];
 
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
+    const gridSize = grid.length;
+    const digits = getDigitsForSize(gridSize);
+
+    for (let r = 0; r < gridSize; r++) {
+      for (let c = 0; c < gridSize; c++) {
         const cell = newGrid[r][c];
         if (cell.digit !== null) continue;
 
         // Standard Sudoku: eliminate digits seen in row/col/box
         const usedDigits = new Set<Digit>();
-        for (const peer of getPeers(r, c)) {
+        for (const peer of getPeers(r, c, gridSize)) {
           const d = newGrid[peer.row][peer.col].digit;
           if (d !== null) usedDigits.add(d);
         }
 
         const candidates = new Set<Digit>();
-        for (const d of DIGITS) {
+        for (const d of digits) {
           if (!usedDigits.has(d)) candidates.add(d);
         }
 

@@ -147,6 +147,7 @@ export function generatePuzzle(
         solution,
         difficulty: finalDifficulty,
         mode,
+        gridSize: 9,
       };
       if (mode === 'killer') {
         result.cages = generateCages(solution, finalDifficulty);
@@ -185,6 +186,7 @@ export function generatePuzzle(
     solution,
     difficulty: 'beginner',
     mode,
+    gridSize: 9,
   };
   if (mode === 'killer') {
     fallback.cages = generateCages(solution, 'beginner');

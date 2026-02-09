@@ -2,6 +2,7 @@ import type { Cage } from '../../engine/types';
 
 type CageOverlayProps = {
   cages: Cage[];
+  gridSize?: number;
 };
 
 const INSET = 0.055;
@@ -87,10 +88,10 @@ function traceCagePath(cage: Cage): string {
   );
 }
 
-export default function CageOverlay({ cages }: CageOverlayProps) {
+export default function CageOverlay({ cages, gridSize = 9 }: CageOverlayProps) {
   return (
     <svg
-      viewBox="0 0 9 9"
+      viewBox={`0 0 ${gridSize} ${gridSize}`}
       className="absolute inset-0 w-full h-full pointer-events-none z-10"
       aria-hidden="true"
     >

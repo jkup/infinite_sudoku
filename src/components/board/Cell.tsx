@@ -1,5 +1,6 @@
 import { memo, type CSSProperties } from 'react';
 import type { Cell as CellType, CellPosition, Digit } from '../../engine/types';
+import { getBoxDimensions, getDigitsForSize } from '../../engine/types';
 
 type CellProps = {
   cell: CellType;
@@ -9,6 +10,7 @@ type CellProps = {
   isConflict: boolean;
   isKillerMode: boolean;
   cageSum: number | null;
+  gridSize: number;
   onClick: (pos: CellPosition) => void;
 };
 
@@ -29,9 +31,11 @@ const NOTE_GRID: Record<Digit, { gridRow: number; gridCol: number }> = {
   9: { gridRow: 3, gridCol: 3 },
 };
 
-function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isKillerMode, cageSum, onClick }: CellProps) {
+function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isKillerMode, cageSum, gridSize, onClick }: CellProps) {
   const { position, digit, isGiven, cornerNotes, centerNotes } = cell;
   const { row, col } = position;
+  const { boxRows, boxCols } = getBoxDimensions(gridSize);
+  const lastIdx = gridSize - 1;
 
   // Background color
   let bgColor: string;
@@ -55,17 +59,17 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
   const killerThick = '2px solid var(--color-board-border)';
   const borderStyle: CSSProperties = isKillerMode
     ? {
-        borderTop:    row % 3 === 0 && row !== 0 ? killerThick : killerFaint,
-        borderLeft:   col % 3 === 0 && col !== 0 ? killerThick : killerFaint,
-        borderRight:  col === 8 ? killerFaint : 'none',
-        borderBottom: row === 8 ? killerFaint : 'none',
+        borderTop:    row % boxRows === 0 && row !== 0 ? killerThick : killerFaint,
+        borderLeft:   col % boxCols === 0 && col !== 0 ? killerThick : killerFaint,
+        borderRight:  col === lastIdx ? killerFaint : 'none',
+        borderBottom: row === lastIdx ? killerFaint : 'none',
         backgroundColor: bgColor,
       }
     : {
-        borderTop:    `${row % 3 === 0 ? 2 : 1}px solid ${row % 3 === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
-        borderLeft:   `${col % 3 === 0 ? 2 : 1}px solid ${col % 3 === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
-        borderRight:  col === 8 ? '2px solid var(--color-board-border)' : '1px solid var(--color-cell-border)',
-        borderBottom: row === 8 ? '2px solid var(--color-board-border)' : '1px solid var(--color-cell-border)',
+        borderTop:    `${row % boxRows === 0 ? 2 : 1}px solid ${row % boxRows === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
+        borderLeft:   `${col % boxCols === 0 ? 2 : 1}px solid ${col % boxCols === 0 ? 'var(--color-board-border)' : 'var(--color-cell-border)'}`,
+        borderRight:  col === lastIdx ? '2px solid var(--color-board-border)' : '1px solid var(--color-cell-border)',
+        borderBottom: row === lastIdx ? '2px solid var(--color-board-border)' : '1px solid var(--color-cell-border)',
         backgroundColor: bgColor,
       };
 
@@ -113,13 +117,17 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
         </span>
       ) : hasNotes ? (
         <>
-          {/* Corner notes — fixed 3x3 grid so each digit is always in the same position */}
+          {/* Corner notes — fixed grid so each digit is always in the same position */}
           {cornerNotes.size > 0 && (
             <div
-              className="absolute inset-0 grid grid-cols-3 grid-rows-3 items-center justify-items-center"
-              style={{ padding: 'clamp(1px, 0.3cqi, 3px)' }}
+              className="absolute inset-0 grid items-center justify-items-center"
+              style={{
+                padding: 'clamp(1px, 0.3cqi, 3px)',
+                gridTemplateColumns: `repeat(3, 1fr)`,
+                gridTemplateRows: `repeat(${gridSize === 6 ? 2 : 3}, 1fr)`,
+              }}
             >
-              {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((d) => (
+              {getDigitsForSize(gridSize).map((d) => (
                 <span
                   key={d}
                   className="leading-none"

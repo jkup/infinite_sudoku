@@ -1,14 +1,17 @@
 import { useGameStore } from '../../store/gameStore';
-import { DIGITS } from '../../engine/types';
+import { getDigitsForSize } from '../../engine/types';
 import type { Digit } from '../../engine/types';
 
 export default function DigitBar() {
   const placeDigit = useGameStore((s) => s.placeDigit);
   const grid = useGameStore((s) => s.grid);
 
+  const gridSize = grid.length || 9;
+  const digits = getDigitsForSize(gridSize);
+
   // Count placed digits to show completion
   const digitCounts = new Map<Digit, number>();
-  for (const d of DIGITS) digitCounts.set(d, 0);
+  for (const d of digits) digitCounts.set(d, 0);
   for (const row of grid) {
     for (const cell of row) {
       if (cell.digit) digitCounts.set(cell.digit, digitCounts.get(cell.digit)! + 1);
@@ -16,9 +19,14 @@ export default function DigitBar() {
   }
 
   return (
-    <div className="grid grid-cols-9 gap-1 w-full max-w-[min(95vw,500px)] mx-auto mt-1.5" role="group" aria-label="Digit input pad">
-      {DIGITS.map((d) => {
-        const complete = digitCounts.get(d)! >= 9;
+    <div
+      className="grid gap-1 w-full max-w-[min(95vw,500px)] mx-auto mt-1.5"
+      style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+      role="group"
+      aria-label="Digit input pad"
+    >
+      {digits.map((d) => {
+        const complete = digitCounts.get(d)! >= gridSize;
         return (
           <button
             key={d}

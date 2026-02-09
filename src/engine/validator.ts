@@ -1,4 +1,5 @@
 import type { Digit, Grid, CellPosition } from './types';
+import { getBoxDimensions } from './types';
 
 export type Conflict = {
   position: CellPosition;
@@ -12,6 +13,7 @@ export type Conflict = {
  */
 export function findConflicts(grid: Grid): Map<string, CellPosition[]> {
   const conflicts = new Map<string, CellPosition[]>();
+  const size = grid.length;
   const key = (r: number, c: number) => `${r},${c}`;
 
   function checkPair(r1: number, c1: number, r2: number, c2: number) {
@@ -28,30 +30,33 @@ export function findConflicts(grid: Grid): Map<string, CellPosition[]> {
   }
 
   // Check rows
-  for (let r = 0; r < 9; r++) {
-    for (let c1 = 0; c1 < 9; c1++) {
-      for (let c2 = c1 + 1; c2 < 9; c2++) {
+  for (let r = 0; r < size; r++) {
+    for (let c1 = 0; c1 < size; c1++) {
+      for (let c2 = c1 + 1; c2 < size; c2++) {
         checkPair(r, c1, r, c2);
       }
     }
   }
 
   // Check columns
-  for (let c = 0; c < 9; c++) {
-    for (let r1 = 0; r1 < 9; r1++) {
-      for (let r2 = r1 + 1; r2 < 9; r2++) {
+  for (let c = 0; c < size; c++) {
+    for (let r1 = 0; r1 < size; r1++) {
+      for (let r2 = r1 + 1; r2 < size; r2++) {
         checkPair(r1, c, r2, c);
       }
     }
   }
 
   // Check boxes
-  for (let box = 0; box < 9; box++) {
-    const br = Math.floor(box / 3) * 3;
-    const bc = (box % 3) * 3;
+  const { boxRows, boxCols } = getBoxDimensions(size);
+  const boxesPerRow = size / boxCols;
+  const numBoxes = size * size / (boxRows * boxCols);
+  for (let box = 0; box < numBoxes; box++) {
+    const br = Math.floor(box / boxesPerRow) * boxRows;
+    const bc = (box % boxesPerRow) * boxCols;
     const cells: [number, number][] = [];
-    for (let r = br; r < br + 3; r++) {
-      for (let c = bc; c < bc + 3; c++) {
+    for (let r = br; r < br + boxRows; r++) {
+      for (let c = bc; c < bc + boxCols; c++) {
         cells.push([r, c]);
       }
     }
@@ -72,7 +77,7 @@ export function findConflicts(grid: Grid): Map<string, CellPosition[]> {
 /**
  * Get all cells that "see" a given position (same row, column, or box).
  */
-export function getPeers(row: number, col: number): CellPosition[] {
+export function getPeers(row: number, col: number, gridSize: number = 9): CellPosition[] {
   const peers: CellPosition[] = [];
   const seen = new Set<string>();
   const key = (r: number, c: number) => `${r},${c}`;
@@ -80,7 +85,7 @@ export function getPeers(row: number, col: number): CellPosition[] {
   seen.add(key(row, col));
 
   // Same row
-  for (let c = 0; c < 9; c++) {
+  for (let c = 0; c < gridSize; c++) {
     const k = key(row, c);
     if (!seen.has(k)) {
       seen.add(k);
@@ -89,7 +94,7 @@ export function getPeers(row: number, col: number): CellPosition[] {
   }
 
   // Same column
-  for (let r = 0; r < 9; r++) {
+  for (let r = 0; r < gridSize; r++) {
     const k = key(r, col);
     if (!seen.has(k)) {
       seen.add(k);
@@ -98,10 +103,11 @@ export function getPeers(row: number, col: number): CellPosition[] {
   }
 
   // Same box
-  const boxR = Math.floor(row / 3) * 3;
-  const boxC = Math.floor(col / 3) * 3;
-  for (let r = boxR; r < boxR + 3; r++) {
-    for (let c = boxC; c < boxC + 3; c++) {
+  const { boxRows, boxCols } = getBoxDimensions(gridSize);
+  const boxR = Math.floor(row / boxRows) * boxRows;
+  const boxC = Math.floor(col / boxCols) * boxCols;
+  for (let r = boxR; r < boxR + boxRows; r++) {
+    for (let c = boxC; c < boxC + boxCols; c++) {
       const k = key(r, c);
       if (!seen.has(k)) {
         seen.add(k);
@@ -117,9 +123,10 @@ export function getPeers(row: number, col: number): CellPosition[] {
  * Check if the grid is completely and correctly solved.
  */
 export function isGridComplete(grid: Grid): boolean {
+  const size = grid.length;
   // All cells filled
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       if (grid[r][c].digit === null) return false;
     }
   }
@@ -133,12 +140,13 @@ export function isGridComplete(grid: Grid): boolean {
  * Returns a map from digit to count (0-9).
  */
 export function getDigitCounts(grid: Grid): Map<Digit, number> {
+  const size = grid.length;
   const counts = new Map<Digit, number>();
-  for (let d = 1; d <= 9; d++) {
+  for (let d = 1; d <= size; d++) {
     counts.set(d as Digit, 0);
   }
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       const d = grid[r][c].digit;
       if (d !== null) {
         counts.set(d, counts.get(d)! + 1);

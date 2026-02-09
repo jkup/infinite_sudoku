@@ -1,5 +1,6 @@
 import type { Difficulty, GameMode, Puzzle } from './types';
 import { generatePuzzle } from './generator';
+import { generateMiniPuzzle } from './miniGenerator';
 
 let worker: Worker | null = null;
 
@@ -31,4 +32,12 @@ export function generatePuzzleAsync(difficulty: Difficulty, mode: GameMode): Pro
     w.addEventListener('message', handler);
     w.postMessage({ difficulty, mode });
   });
+}
+
+/**
+ * Generate a 6x6 mini puzzle. Fast enough to run on the main thread,
+ * wrapped in a Promise for consistency with the async API.
+ */
+export function generateMiniPuzzleAsync(difficulty: Difficulty): Promise<Puzzle> {
+  return Promise.resolve(generateMiniPuzzle(difficulty));
 }

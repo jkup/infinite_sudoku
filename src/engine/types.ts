@@ -31,10 +31,11 @@ export type GameStatus = 'playing' | 'paused' | 'completed';
 export type InputMode = 'digit' | 'corner' | 'center' | 'color';
 
 export type Puzzle = {
-  initial: (Digit | null)[][]; // 9x9 grid of initial values
-  solution: Digit[][];         // 9x9 solved grid
+  initial: (Digit | null)[][]; // grid of initial values
+  solution: Digit[][];         // solved grid
   difficulty: Difficulty;
   mode: GameMode;
+  gridSize: number;            // 6 or 9
   cages?: Cage[];              // Only for killer mode
 };
 
@@ -71,6 +72,21 @@ export function getBox(row: number, col: number): number {
   return Math.floor(row / 3) * 3 + Math.floor(col / 3);
 }
 
+export function getBoxDimensions(gridSize: number): { boxRows: number; boxCols: number } {
+  if (gridSize === 6) return { boxRows: 2, boxCols: 3 };
+  return { boxRows: 3, boxCols: 3 };
+}
+
+export function getBoxForSize(row: number, col: number, gridSize: number): number {
+  const { boxRows, boxCols } = getBoxDimensions(gridSize);
+  return Math.floor(row / boxRows) * (gridSize / boxCols) + Math.floor(col / boxCols);
+}
+
+export function getDigitsForSize(size: number): Digit[] {
+  if (size === 6) return [1, 2, 3, 4, 5, 6];
+  return DIGITS;
+}
+
 export function createEmptyGrid(): Grid {
   return Array.from({ length: 9 }, (_, row) =>
     Array.from({ length: 9 }, (_, col) => ({
@@ -86,8 +102,9 @@ export function createEmptyGrid(): Grid {
 }
 
 export function gridFromValues(values: (Digit | null)[][], asGivens: boolean): Grid {
-  return Array.from({ length: 9 }, (_, row) =>
-    Array.from({ length: 9 }, (_, col) => ({
+  const size = values.length;
+  return Array.from({ length: size }, (_, row) =>
+    Array.from({ length: size }, (_, col) => ({
       position: { row, col },
       digit: values[row][col],
       isGiven: asGivens && values[row][col] !== null,

@@ -11,7 +11,7 @@ import type {
   HistoryEntry,
 } from '../engine/types';
 import { DIFFICULTY_ORDER, gridFromValues } from '../engine/types';
-import { generatePuzzleAsync } from '../engine/generateAsync';
+import { generateMiniPuzzleAsync } from '../engine/generateAsync';
 import { findConflicts } from '../engine/validator';
 import { useGameStore } from './gameStore';
 
@@ -124,7 +124,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     // Push onto stack immediately
     set({ stack: [...get().stack, snapshot], transition: 'deeper' });
 
-    generatePuzzleAsync(easierDifficulty, game.mode).then((hintPuzzle) => {
+    generateMiniPuzzleAsync(easierDifficulty).then((hintPuzzle) => {
       const hintGrid = gridFromValues(hintPuzzle.initial, true);
 
       // Clear the timer interval and start a fresh one for the hint puzzle
@@ -141,7 +141,7 @@ export const useHintStore = create<HintState>((set, get) => ({
       useGameStore.setState({
         grid: hintGrid,
         puzzle: hintPuzzle,
-        mode: game.mode,
+        mode: hintPuzzle.mode,
         difficulty: easierDifficulty,
         status: 'playing',
         selectedCell: null,
