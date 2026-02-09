@@ -26,12 +26,18 @@ export type LeaderboardEntry = {
   completedAt: string;
 };
 
+/** Token getter injected by the React layer (see AuthTokenProvider) */
+let _getToken: (() => Promise<string | null>) | null = null;
+
+/** Called from React to provide the Clerk getToken function */
+export function setAuthTokenGetter(fn: () => Promise<string | null>): void {
+  _getToken = fn;
+}
+
 async function getAuthToken(): Promise<string | null> {
-  // Access Clerk from the window — avoids importing Clerk into non-React modules
-  const clerk = (window as unknown as { Clerk?: { session?: { getToken: () => Promise<string> } } }).Clerk;
-  if (!clerk?.session) return null;
+  if (!_getToken) return null;
   try {
-    return await clerk.session.getToken();
+    return await _getToken();
   } catch {
     return null;
   }

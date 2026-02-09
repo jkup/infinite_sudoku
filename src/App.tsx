@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { ClerkProvider } from '@clerk/clerk-react';
+import { ClerkProvider, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
 import { useThemeStore, type Theme } from './store/themeStore';
@@ -18,6 +18,7 @@ import Onboarding from './components/ui/Onboarding';
 import Confetti from './components/ui/Confetti';
 import UserButton from './components/auth/UserButton';
 import StatsPanel from './components/stats/StatsPanel';
+import { setAuthTokenGetter } from './lib/api';
 
 // Check both names: VITE_CLERK_PUBLISHABLE_KEY (local dev) and CLERK_PUBLIC (Cloudflare production)
 const CLERK_KEY = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.CLERK_PUBLIC) as string | undefined;
@@ -370,6 +371,15 @@ function GameScreen() {
   );
 }
 
+/** Bridges Clerk's useAuth into the non-React api module */
+function AuthTokenBridge() {
+  const { getToken } = useClerkAuth();
+  useEffect(() => {
+    setAuthTokenGetter(() => getToken());
+  }, [getToken]);
+  return null;
+}
+
 export default function App() {
   const router = (
     <BrowserRouter>
@@ -386,6 +396,7 @@ export default function App() {
 
   return (
     <ClerkProvider publishableKey={CLERK_KEY}>
+      <AuthTokenBridge />
       {router}
     </ClerkProvider>
   );
