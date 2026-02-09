@@ -56,15 +56,23 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
 }
 
 export async function postGameResult(data: GameResultPayload): Promise<void> {
-  await authFetch('/api/stats', {
+  const res = await authFetch('/api/stats', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    console.error(`[stats] POST /api/stats failed (${res.status}):`, body);
+  }
 }
 
 export async function getStats(): Promise<UserStats | null> {
   const res = await authFetch('/api/stats');
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    console.error(`[stats] GET /api/stats failed (${res.status}):`, body);
+    return null;
+  }
   return res.json();
 }
 
