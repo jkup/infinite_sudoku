@@ -17,6 +17,7 @@ import { findConflicts, getPeers } from '../engine/validator';
 import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame } from '../lib/persistence';
 import { postGameResult } from '../lib/api';
+import { useHintStore } from './hintStore';
 import { calculateScore } from '../lib/scoring';
 
 function vibrate(ms: number | number[] = 10) {
@@ -45,6 +46,10 @@ type GameState = {
 
   // Conflicts
   conflicts: Map<string, CellPosition[]>;
+
+  // Stats tracking
+  hintsUsed: number;
+  errorsMade: number;
 
   // Actions
   newGame: (difficulty: Difficulty, mode?: GameMode) => void;
@@ -91,22 +96,24 @@ function saveToCloud(state: {
   mode: GameMode;
   difficulty: Difficulty;
   elapsedMs: number;
+  hintsUsed: number;
+  errorsMade: number;
 }): void {
   const score = calculateScore({
     difficulty: state.difficulty,
     mode: state.mode,
     solveTimeMs: state.elapsedMs,
-    hintsUsed: 0,
-    errorsMade: 0,
+    hintsUsed: state.hintsUsed,
+    errorsMade: state.errorsMade,
   });
 
   postGameResult({
     mode: state.mode,
     difficulty: state.difficulty,
     solveTimeMs: state.elapsedMs,
-    hintsUsed: 0,
+    hintsUsed: state.hintsUsed,
     maxHintDepth: 0,
-    errorsMade: 0,
+    errorsMade: state.errorsMade,
     score,
   }).catch(() => {
     // Cloud save is best-effort — fail silently
@@ -126,6 +133,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   elapsedMs: 0,
   timerInterval: null,
   conflicts: new Map(),
+  hintsUsed: 0,
+  errorsMade: 0,
 
   newGame: (difficulty, mode = 'classic') => {
     const { timerInterval } = get();
@@ -155,6 +164,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         elapsedMs: 0,
         timerInterval: interval,
         conflicts: new Map(),
+        hintsUsed: 0,
+        errorsMade: 0,
       });
     });
   },
@@ -236,6 +247,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     const conflicts = updateConflicts(newGrid);
     const isComplete = target.digit !== null && checkCompletion(newGrid);
 
+    // Track errors: if the placed digit creates a conflict, count it
+    const cellKey = `${row},${col}`;
+    const isNewError = target.digit !== null && conflicts.has(cellKey);
+
     // Truncate redo history
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push({ changes });
@@ -246,13 +261,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       history: newHistory,
       historyIndex: newHistory.length - 1,
       status: isComplete ? 'completed' : 'playing',
+      errorsMade: isNewError ? get().errorsMade + 1 : get().errorsMade,
     });
 
     if (isComplete) {
       vibrate([50, 50, 50, 50, 100]);
-      const { timerInterval, mode, difficulty, elapsedMs } = get();
+      const { timerInterval, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em } = get();
       if (timerInterval) clearInterval(timerInterval);
-      saveToCloud({ mode, difficulty, elapsedMs });
+      // Only save to cloud for top-level puzzles, not hint puzzles
+      const isInHintStack = useHintStore.getState().stack.length > 0;
+      if (!isInHintStack) {
+        saveToCloud({ mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
+      }
     }
   },
 
@@ -483,6 +503,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       timerInterval: interval,
       selectedCell: null,
       conflicts: updateConflicts(saved.grid),
+      hintsUsed: 0,
+      errorsMade: 0,
     });
     return true;
   },
@@ -536,8 +558,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     if (isComplete) {
-      const { mode, difficulty, elapsedMs } = get();
-      saveToCloud({ mode, difficulty, elapsedMs });
+      const { mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em } = get();
+      const isInHintStack = useHintStore.getState().stack.length > 0;
+      if (!isInHintStack) {
+        saveToCloud({ mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
+      }
     }
   },
 

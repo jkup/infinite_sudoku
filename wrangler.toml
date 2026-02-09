@@ -4,4 +4,4 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "infinite-sudoku-db"
-database_id = "<to-be-created>"
+database_id = "68b7f65b-1dda-4b53-8bbd-b26d43814ecb"

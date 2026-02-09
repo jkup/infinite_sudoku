@@ -21,7 +21,7 @@ export default function StatsPanel() {
 
   if (!isSignedIn) {
     return (
-      <div className="text-center text-slate-400 text-sm py-6">
+      <div className="text-center text-sm py-6" style={{ color: 'var(--color-text-muted)' }}>
         Sign in to track your stats across devices.
       </div>
     );
@@ -29,7 +29,7 @@ export default function StatsPanel() {
 
   if (loading) {
     return (
-      <div className="text-center text-slate-400 text-sm py-6">
+      <div className="text-center text-sm py-6" style={{ color: 'var(--color-text-muted)' }}>
         Loading stats...
       </div>
     );
@@ -37,7 +37,7 @@ export default function StatsPanel() {
 
   if (!stats) {
     return (
-      <div className="text-center text-slate-400 text-sm py-6">
+      <div className="text-center text-sm py-6" style={{ color: 'var(--color-text-muted)' }}>
         No stats yet — complete a puzzle to get started!
       </div>
     );
@@ -55,9 +55,9 @@ export default function StatsPanel() {
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-slate-50 rounded-xl p-3">
-      <div className="text-2xl font-bold text-slate-800">{value}</div>
-      <div className="text-xs text-slate-500">{label}</div>
+    <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+      <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{value}</div>
+      <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</div>
     </div>
   );
 }

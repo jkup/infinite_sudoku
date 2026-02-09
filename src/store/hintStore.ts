@@ -29,6 +29,8 @@ export type StackEntry = {
   history: HistoryEntry[];
   historyIndex: number;
   elapsedMs: number;
+  hintsUsed: number;
+  errorsMade: number;
   hintCell: CellPosition; // The cell in THIS puzzle that needs the hint
   hintDigit: Digit;       // The answer for that cell
 };
@@ -99,9 +101,14 @@ export const useHintStore = create<HintState>((set, get) => ({
       useGameStore.setState({
         grid: newGrid,
         conflicts: findConflicts(newGrid),
+        hintsUsed: game.hintsUsed + 1,
       });
       return;
     }
+
+    // Increment hint count before snapshotting so it's preserved in the stack
+    const updatedHintsUsed = game.hintsUsed + 1;
+    useGameStore.setState({ hintsUsed: updatedHintsUsed });
 
     // Save current game state to the stack
     const snapshot: StackEntry = {
@@ -114,6 +121,8 @@ export const useHintStore = create<HintState>((set, get) => ({
       history: cloneHistory(game.history),
       historyIndex: game.historyIndex,
       elapsedMs: game.elapsedMs,
+      hintsUsed: updatedHintsUsed,
+      errorsMade: game.errorsMade,
       hintCell: { row, col },
       hintDigit,
     };
@@ -197,6 +206,8 @@ export const useHintStore = create<HintState>((set, get) => ({
       history: cloneHistory(parent.history),
       historyIndex: parent.historyIndex,
       elapsedMs: parent.elapsedMs,
+      hintsUsed: parent.hintsUsed,
+      errorsMade: parent.errorsMade,
       timerInterval: interval,
       selectedCell: null,
       conflicts,
@@ -233,6 +244,8 @@ export const useHintStore = create<HintState>((set, get) => ({
       history: cloneHistory(parent.history),
       historyIndex: parent.historyIndex,
       elapsedMs: parent.elapsedMs,
+      hintsUsed: parent.hintsUsed,
+      errorsMade: parent.errorsMade,
       timerInterval: interval,
       selectedCell: null,
       conflicts: findConflicts(parent.grid),
@@ -268,6 +281,8 @@ export const useHintStore = create<HintState>((set, get) => ({
       history: cloneHistory(target.history),
       historyIndex: target.historyIndex,
       elapsedMs: target.elapsedMs,
+      hintsUsed: target.hintsUsed,
+      errorsMade: target.errorsMade,
       timerInterval: interval,
       selectedCell: null,
       conflicts: findConflicts(target.grid),
