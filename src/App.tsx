@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { ClerkProvider, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
+import { useTutorialStore, getTutorialById } from './store/tutorialStore';
 import { useThemeStore, type Theme } from './store/themeStore';
 import { usePreferencesStore } from './store/preferencesStore';
 import { useKeyboard } from './hooks/useKeyboard';
@@ -19,6 +20,8 @@ import Onboarding from './components/ui/Onboarding';
 import Confetti from './components/ui/Confetti';
 import UserButton from './components/auth/UserButton';
 import StatsPanel from './components/stats/StatsPanel';
+import TutorialList from './components/tutorial/TutorialList';
+import TutorialLesson from './components/tutorial/TutorialLesson';
 import { setAuthTokenGetter } from './lib/api';
 
 // Check both names: VITE_CLERK_PUBLISHABLE_KEY (local dev) and CLERK_PUBLIC (Cloudflare production)
@@ -141,6 +144,24 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
             </button>
           </div>
 
+          {/* Tutorials */}
+          <div className="mb-2">
+            <button
+              onClick={() => {
+                useTutorialStore.getState().openList();
+                setOpen(false);
+              }}
+              className="w-full px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors text-left"
+              style={{
+                color: 'var(--color-btn-text)',
+                borderColor: 'var(--color-cell-border)',
+                backgroundColor: 'var(--color-btn-bg)',
+              }}
+            >
+              Tutorials
+            </button>
+          </div>
+
           {/* Keyboard shortcuts */}
           <div>
             <button
@@ -198,6 +219,13 @@ function GameScreen() {
   const hintTransition = useHintStore((s) => s.transition);
   const clearTransition = useHintStore((s) => s.clearTransition);
   const isInHintStack = hintStack.length > 0;
+
+  const tutorialPhase = useTutorialStore((s) => s.phase);
+  const activeTutorialId = useTutorialStore((s) => s.activeTutorialId);
+  const completePractice = useTutorialStore((s) => s.completePractice);
+  const abandonPractice = useTutorialStore((s) => s.abandonPractice);
+  const isInTutorialPractice = tutorialPhase === 'practice';
+  const activeTutorial = activeTutorialId ? getTutorialById(activeTutorialId) : null;
 
   const [pendingGame, setPendingGame] = useState<{ difficulty: Difficulty; mode: GameMode } | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
@@ -273,6 +301,27 @@ function GameScreen() {
       {/* Hint puzzle stack indicator */}
       <PuzzleStack />
 
+      {/* Tutorial practice banner */}
+      {isInTutorialPractice && activeTutorial && (
+        <div className="w-full max-w-[min(90vw,500px)] mx-auto mb-3">
+          <div
+            className="rounded-xl px-4 py-3 border flex items-center justify-between"
+            style={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-cell-border)' }}
+          >
+            <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+              Tutorial: {activeTutorial.name}
+            </span>
+            <button
+              onClick={abandonPractice}
+              className="text-xs font-medium px-2.5 py-1 rounded-md transition-colors"
+              style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-text-muted)' }}
+            >
+              Quit
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Board */}
       <div className={`w-full max-w-[min(98vw,500px)]${boardAnim ? ` ${boardAnim}` : ''}`}>
         <Board />
@@ -299,8 +348,30 @@ function GameScreen() {
         />
       )}
 
+      {/* Tutorial practice completion overlay */}
+      {status === 'completed' && isInTutorialPractice && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Tutorial complete">
+          <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
+            <div className="text-4xl mb-3">&#127891;</div>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
+              Tutorial Complete!
+            </h2>
+            <p className="mb-6" style={{ color: 'var(--color-text-muted)' }}>
+              Great work! You've mastered the {activeTutorial?.name} technique.
+            </p>
+            <button
+              onClick={completePractice}
+              className="px-6 py-3 rounded-xl font-semibold transition-colors"
+              style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Completion overlay — different for hint puzzles vs regular */}
-      {status === 'completed' && isInHintStack && (
+      {status === 'completed' && !isInTutorialPractice && isInHintStack && (
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Hint earned">
           <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127881;</div>
@@ -321,7 +392,7 @@ function GameScreen() {
         </div>
       )}
 
-      {status === 'completed' && !isInHintStack && (
+      {status === 'completed' && !isInTutorialPractice && !isInHintStack && (
         <>
         <Confetti />
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Puzzle complete">
@@ -370,6 +441,10 @@ function GameScreen() {
 
       {/* Onboarding for first-time players */}
       <Onboarding />
+
+      {/* Tutorial overlays */}
+      <TutorialList />
+      <TutorialLesson />
 
       {/* Footer */}
       <footer className="mt-4 mb-2 text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>

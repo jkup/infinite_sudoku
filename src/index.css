@@ -56,6 +56,10 @@ body {
 
   --color-overlay-bg: rgba(0, 0, 0, 0.3);
   --color-card-bg: #ffffff;
+
+  --color-tutorial-primary: #bfdbfe;
+  --color-tutorial-secondary: #e0e7ff;
+  --color-tutorial-target: #fef08a;
 }
 
 /* Dark theme */
@@ -89,6 +93,10 @@ body {
 
   --color-overlay-bg: rgba(0, 0, 0, 0.6);
   --color-card-bg: #1e293b;
+
+  --color-tutorial-primary: #1e3a5f;
+  --color-tutorial-secondary: #1e2d4a;
+  --color-tutorial-target: #854d0e;
 }
 
 /* Newspaper theme */
@@ -122,6 +130,10 @@ body {
 
   --color-overlay-bg: rgba(44, 36, 22, 0.3);
   --color-card-bg: #faf6f1;
+
+  --color-tutorial-primary: #e8d5b7;
+  --color-tutorial-secondary: #f0ebe4;
+  --color-tutorial-target: #fcd34d;
 }
 
 /* High Contrast theme */
@@ -155,6 +167,10 @@ body {
 
   --color-overlay-bg: rgba(0, 0, 0, 0.5);
   --color-card-bg: #ffffff;
+
+  --color-tutorial-primary: #ccccff;
+  --color-tutorial-secondary: #e0e0e0;
+  --color-tutorial-target: #ffff00;
 }
 
 /* Hint puzzle transition animations */
