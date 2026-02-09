@@ -81,6 +81,115 @@ function cloneGrid(grid: Grid): Grid {
   );
 }
 
+/**
+ * When a digit is removed from a cell, restore that digit to corner notes
+ * of any peer cell that (a) already has corner notes and (b) has no other
+ * placed peer supplying the same digit (i.e. the digit is a valid candidate).
+ * Also recalculate candidates for the cleared cell itself if auto-notes are active.
+ * Returns CellChange entries for all affected peers.
+ */
+function restoreNotesOnRemoval(
+  grid: Grid,
+  row: number,
+  col: number,
+  removedDigit: Digit,
+  cages?: Puzzle['cages'],
+): CellChange[] {
+  const gridSize = grid.length;
+  const changes: CellChange[] = [];
+
+  for (const peer of getPeers(row, col, gridSize)) {
+    const peerCell = grid[peer.row][peer.col];
+    // Only restore for empty cells that already have corner notes (auto-notes active)
+    if (peerCell.digit !== null || peerCell.cornerNotes.size === 0) continue;
+    // Already has this digit noted
+    if (peerCell.cornerNotes.has(removedDigit)) continue;
+
+    // Check if removedDigit is actually a valid candidate for this peer
+    let isCandidate = true;
+    for (const peerPeer of getPeers(peer.row, peer.col, gridSize)) {
+      if (grid[peerPeer.row][peerPeer.col].digit === removedDigit) {
+        isCandidate = false;
+        break;
+      }
+    }
+
+    // Also check killer cage constraint
+    if (isCandidate && cages) {
+      const cage = getCageForCell(cages, peer.row, peer.col);
+      if (cage) {
+        for (const cc of cage.cells) {
+          if (cc.row === peer.row && cc.col === peer.col) continue;
+          if (grid[cc.row][cc.col].digit === removedDigit) {
+            isCandidate = false;
+            break;
+          }
+        }
+      }
+    }
+
+    if (isCandidate) {
+      const change: CellChange = {
+        position: peer,
+        previousDigit: null,
+        newDigit: null,
+        previousCornerNotes: new Set(peerCell.cornerNotes),
+        newCornerNotes: new Set(peerCell.cornerNotes),
+        previousCenterNotes: new Set(peerCell.centerNotes),
+        newCenterNotes: new Set(peerCell.centerNotes),
+      };
+      peerCell.cornerNotes.add(removedDigit);
+      change.newCornerNotes = new Set(peerCell.cornerNotes);
+      changes.push(change);
+    }
+  }
+
+  // Recalculate candidates for the now-empty cell itself if auto-notes are in use
+  // (heuristic: if any peer has corner notes, auto-notes are active)
+  const autoNotesActive = getPeers(row, col, gridSize).some(
+    (p) => grid[p.row][p.col].digit === null && grid[p.row][p.col].cornerNotes.size > 0,
+  );
+  if (autoNotesActive) {
+    const cell = grid[row][col];
+    const usedDigits = new Set<Digit>();
+    for (const peer of getPeers(row, col, gridSize)) {
+      const d = grid[peer.row][peer.col].digit;
+      if (d !== null) usedDigits.add(d);
+    }
+    if (cages) {
+      const cage = getCageForCell(cages, row, col);
+      if (cage) {
+        for (const cc of cage.cells) {
+          if (cc.row === row && cc.col === col) continue;
+          const d = grid[cc.row][cc.col].digit;
+          if (d !== null) usedDigits.add(d);
+        }
+      }
+    }
+    const candidates = new Set<Digit>();
+    for (const d of getDigitsForSize(gridSize)) {
+      if (!usedDigits.has(d)) candidates.add(d);
+    }
+
+    const prevCorner = cell.cornerNotes;
+    if (candidates.size !== prevCorner.size || [...candidates].some((d) => !prevCorner.has(d))) {
+      changes.push({
+        position: { row, col },
+        previousDigit: null,
+        newDigit: null,
+        previousCornerNotes: new Set(prevCorner),
+        newCornerNotes: new Set(candidates),
+        previousCenterNotes: new Set(cell.centerNotes),
+        newCenterNotes: new Set<Digit>(),
+      });
+      cell.cornerNotes = candidates;
+      cell.centerNotes = new Set<Digit>();
+    }
+  }
+
+  return changes;
+}
+
 function checkCompletion(grid: Grid): boolean {
   const size = grid.length;
   for (let r = 0; r < size; r++) {
@@ -207,6 +316,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (target.digit === digit) {
       // Toggle off
       target.digit = null;
+      // Restore notes that were auto-removed when this digit was placed
+      const restored = restoreNotesOnRemoval(newGrid, row, col, digit, get().puzzle?.cages);
+      changes.push(...restored);
+      // Update primaryChange to reflect any note restoration on this cell
+      primaryChange.newCornerNotes = new Set(target.cornerNotes);
+      primaryChange.newCenterNotes = new Set(target.centerNotes);
     } else {
       target.digit = digit;
       // Clear notes when placing a digit
@@ -290,6 +405,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newGrid = cloneGrid(grid);
     const target = newGrid[row][col];
 
+    const removedDigit = target.digit;
+
     const change: CellChange = {
       position: { row, col },
       previousDigit: target.digit,
@@ -304,9 +421,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     target.cornerNotes.clear();
     target.centerNotes.clear();
 
+    // Restore notes that were auto-removed when this digit was placed
+    const restoredChanges: CellChange[] = [];
+    if (removedDigit !== null) {
+      const restored = restoreNotesOnRemoval(newGrid, row, col, removedDigit, get().puzzle?.cages);
+      restoredChanges.push(...restored);
+      // Update change to reflect any note restoration on this cell
+      change.newCornerNotes = new Set(target.cornerNotes);
+      change.newCenterNotes = new Set(target.centerNotes);
+    }
+
     const conflicts = updateConflicts(newGrid);
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ changes: [change] });
+    newHistory.push({ changes: [change, ...restoredChanges] });
 
     set({
       grid: newGrid,
