@@ -4,6 +4,7 @@ import { ClerkProvider, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
 import { useThemeStore, type Theme } from './store/themeStore';
+import { usePreferencesStore } from './store/preferencesStore';
 import { useKeyboard } from './hooks/useKeyboard';
 import type { Difficulty, GameMode } from './engine/types';
 import Board from './components/board/Board';
@@ -59,6 +60,8 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const checkAnswers = usePreferencesStore((s) => s.checkAnswers);
+  const setCheckAnswers = usePreferencesStore((s) => s.setCheckAnswers);
 
   // Close on outside click
   useEffect(() => {
@@ -102,6 +105,22 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
               Theme
             </div>
             <ThemePicker />
+          </div>
+
+          {/* Check Answers toggle */}
+          <div className="mb-3">
+            <label
+              className="flex items-center gap-2 cursor-pointer text-sm font-medium"
+              style={{ color: 'var(--color-btn-text)' }}
+            >
+              <input
+                type="checkbox"
+                checked={checkAnswers}
+                onChange={(e) => setCheckAnswers(e.target.checked)}
+                className="accent-current w-4 h-4"
+              />
+              Check Answers
+            </label>
           </div>
 
           {/* Stats toggle */}

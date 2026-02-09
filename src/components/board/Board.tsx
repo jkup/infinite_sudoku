@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { usePreferencesStore } from '../../store/preferencesStore';
 import { getBoxForSize } from '../../engine/types';
 import type { CellPosition } from '../../engine/types';
 import { isCageLabelCell } from '../../engine/killer';
@@ -12,6 +13,7 @@ export default function Board() {
   const conflicts = useGameStore((s) => s.conflicts);
   const selectCell = useGameStore((s) => s.selectCell);
   const puzzle = useGameStore((s) => s.puzzle);
+  const checkAnswers = usePreferencesStore((s) => s.checkAnswers);
 
   if (grid.length === 0) return null;
 
@@ -72,7 +74,9 @@ export default function Board() {
         {grid.flat().map((cell) => {
           const { row, col } = cell.position;
           const key = `${row}-${col}`;
-          const isConflict = conflicts.has(`${row},${col}`);
+          const hasConflict = conflicts.has(`${row},${col}`);
+          const wrongAnswer = checkAnswers && cell.digit !== null && puzzle?.solution[row][col] !== cell.digit;
+          const isConflict = hasConflict || !!wrongAnswer;
           const isSelected =
             selectedCell !== null &&
             selectedCell.row === row &&
