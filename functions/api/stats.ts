@@ -50,7 +50,20 @@ export const onRequestPost: PagesFunction<Env, string, RequestData> = async (con
     score: number;
   }>();
 
-  // Insert game result
+  // Upsert user_stats first (game_results has a FK referencing this table)
+  await DB.prepare(
+    `INSERT INTO user_stats (clerk_user_id, total_games_completed, total_hints_used, total_score)
+     VALUES (?, 1, ?, ?)
+     ON CONFLICT(clerk_user_id) DO UPDATE SET
+       total_games_completed = total_games_completed + 1,
+       total_hints_used = total_hints_used + excluded.total_hints_used,
+       total_score = total_score + excluded.total_score,
+       updated_at = CURRENT_TIMESTAMP`
+  )
+    .bind(userId, body.hintsUsed, body.score)
+    .run();
+
+  // Insert game result (user_stats row now guaranteed to exist)
   await DB.prepare(
     `INSERT INTO game_results (clerk_user_id, mode, difficulty, solve_time_ms, hints_used, max_hint_depth, errors_made, score)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
@@ -65,19 +78,6 @@ export const onRequestPost: PagesFunction<Env, string, RequestData> = async (con
       body.errorsMade,
       body.score
     )
-    .run();
-
-  // Upsert user_stats
-  await DB.prepare(
-    `INSERT INTO user_stats (clerk_user_id, total_games_completed, total_hints_used, total_score)
-     VALUES (?, 1, ?, ?)
-     ON CONFLICT(clerk_user_id) DO UPDATE SET
-       total_games_completed = total_games_completed + 1,
-       total_hints_used = total_hints_used + excluded.total_hints_used,
-       total_score = total_score + excluded.total_score,
-       updated_at = CURRENT_TIMESTAMP`
-  )
-    .bind(userId, body.hintsUsed, body.score)
     .run();
 
   return Response.json({ ok: true });
