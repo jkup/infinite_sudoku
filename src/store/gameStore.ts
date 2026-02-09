@@ -408,7 +408,43 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
 
-    if (changes.length === 0) return;
+    // If no changes, notes already match candidates — toggle them off
+    if (changes.length === 0) {
+      const clearGrid = cloneGrid(grid);
+      const clearChanges: CellChange[] = [];
+
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          const cell = clearGrid[r][c];
+          if (cell.digit !== null) continue;
+          if (cell.cornerNotes.size === 0 && cell.centerNotes.size === 0) continue;
+
+          clearChanges.push({
+            position: { row: r, col: c },
+            previousDigit: null,
+            newDigit: null,
+            previousCornerNotes: new Set(cell.cornerNotes),
+            newCornerNotes: new Set<Digit>(),
+            previousCenterNotes: new Set(cell.centerNotes),
+            newCenterNotes: new Set<Digit>(),
+          });
+          cell.cornerNotes = new Set<Digit>();
+          cell.centerNotes = new Set<Digit>();
+        }
+      }
+
+      if (clearChanges.length === 0) return;
+
+      const clearHistory = history.slice(0, historyIndex + 1);
+      clearHistory.push({ changes: clearChanges });
+
+      set({
+        grid: clearGrid,
+        history: clearHistory,
+        historyIndex: clearHistory.length - 1,
+      });
+      return;
+    }
 
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push({ changes });
