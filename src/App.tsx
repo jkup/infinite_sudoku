@@ -61,15 +61,16 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
 
   // Close on outside click
   useEffect(() => {
-    if (!open) return;
+    if (!open && !showStats) return;
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
+        setShowStats(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  }, [open, showStats]);
 
   return (
     <div className="relative" ref={ref}>
