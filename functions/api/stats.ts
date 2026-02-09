@@ -64,8 +64,8 @@ export const onRequestPost: PagesFunction<Env, string, RequestData> = async (con
   if (existing) {
     const lastDate = existing.updated_at.slice(0, 10);
     if (lastDate === today) {
-      // Already completed a game today — streak unchanged
-      newStreak = existing.current_daily_streak;
+      // Already completed a game today — streak unchanged (min 1 for legacy rows)
+      newStreak = Math.max(1, existing.current_daily_streak);
     } else if (lastDate === yesterday) {
       // Consecutive day — extend streak
       newStreak = existing.current_daily_streak + 1;
