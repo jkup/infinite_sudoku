@@ -83,7 +83,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
 
   return (
     <div
-      className="relative flex items-center justify-center cursor-pointer select-none aspect-square transition-colors duration-75 active:brightness-95"
+      className="relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95"
       style={borderStyle}
       onClick={() => onClick(position)}
       tabIndex={isSelected ? 0 : -1}
