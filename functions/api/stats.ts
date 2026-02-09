@@ -50,17 +50,43 @@ export const onRequestPost: PagesFunction<Env, string, RequestData> = async (con
     score: number;
   }>();
 
+  // Compute streak: check the user's last completion date
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+
+  const existing = await DB.prepare(
+    'SELECT current_daily_streak, longest_daily_streak, updated_at FROM user_stats WHERE clerk_user_id = ?'
+  ).bind(userId).first<{ current_daily_streak: number; longest_daily_streak: number; updated_at: string }>();
+
+  let newStreak = 1;
+  let newLongest = 1;
+
+  if (existing) {
+    const lastDate = existing.updated_at.slice(0, 10);
+    if (lastDate === today) {
+      // Already completed a game today — streak unchanged
+      newStreak = existing.current_daily_streak;
+    } else if (lastDate === yesterday) {
+      // Consecutive day — extend streak
+      newStreak = existing.current_daily_streak + 1;
+    }
+    // else: gap — reset to 1
+    newLongest = Math.max(existing.longest_daily_streak, newStreak);
+  }
+
   // Upsert user_stats first (game_results has a FK referencing this table)
   await DB.prepare(
-    `INSERT INTO user_stats (clerk_user_id, total_games_completed, total_hints_used, total_score)
-     VALUES (?, 1, ?, ?)
+    `INSERT INTO user_stats (clerk_user_id, total_games_completed, total_hints_used, total_score, current_daily_streak, longest_daily_streak)
+     VALUES (?, 1, ?, ?, ?, ?)
      ON CONFLICT(clerk_user_id) DO UPDATE SET
        total_games_completed = total_games_completed + 1,
        total_hints_used = total_hints_used + excluded.total_hints_used,
        total_score = total_score + excluded.total_score,
+       current_daily_streak = excluded.current_daily_streak,
+       longest_daily_streak = excluded.longest_daily_streak,
        updated_at = CURRENT_TIMESTAMP`
   )
-    .bind(userId, body.hintsUsed, body.score)
+    .bind(userId, body.hintsUsed, body.score, newStreak, newLongest)
     .run();
 
   // Insert game result (user_stats row now guaranteed to exist)
