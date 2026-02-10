@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { ClerkProvider, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { ClerkProvider, SignIn, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
 import { useTutorialStore, getTutorialById } from './store/tutorialStore';
@@ -202,6 +202,33 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SignInPage() {
+  const navigate = useNavigate();
+  const { isSignedIn } = useClerkAuth();
+  const theme = useThemeStore((s) => s.theme);
+
+  // Redirect to home once signed in
+  useEffect(() => {
+    if (isSignedIn) {
+      navigate('/', { replace: true });
+    }
+  }, [isSignedIn, navigate]);
+
+  return (
+    <div
+      className="flex flex-col items-center justify-center min-h-screen px-4"
+      style={{ backgroundColor: 'var(--color-bg)' }}
+    >
+      <SignIn
+        routing="path"
+        path="/sign-in"
+        signUpUrl="/sign-in"
+        appearance={{ variables: { colorPrimary: theme === 'dark' ? '#60a5fa' : '#3b82f6' } }}
+      />
     </div>
   );
 }
@@ -479,6 +506,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<GameScreen />} />
+        <Route path="/sign-in/*" element={<SignInPage />} />
       </Routes>
     </BrowserRouter>
   );
