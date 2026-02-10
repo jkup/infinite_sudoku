@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { ClerkProvider, SignIn, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { ClerkProvider, SignIn, SignUp, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
 import { useTutorialStore, getTutorialById } from './store/tutorialStore';
@@ -226,7 +226,33 @@ function SignInPage() {
       <SignIn
         routing="path"
         path="/sign-in"
-        signUpUrl="/sign-in"
+        signUpUrl="/sign-up"
+        appearance={{ variables: { colorPrimary: theme === 'dark' ? '#60a5fa' : '#3b82f6' } }}
+      />
+    </div>
+  );
+}
+
+function SignUpPage() {
+  const navigate = useNavigate();
+  const { isSignedIn } = useClerkAuth();
+  const theme = useThemeStore((s) => s.theme);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      navigate('/', { replace: true });
+    }
+  }, [isSignedIn, navigate]);
+
+  return (
+    <div
+      className="flex flex-col items-center justify-center min-h-screen px-4"
+      style={{ backgroundColor: 'var(--color-bg)' }}
+    >
+      <SignUp
+        routing="path"
+        path="/sign-up"
+        signInUrl="/sign-in"
         appearance={{ variables: { colorPrimary: theme === 'dark' ? '#60a5fa' : '#3b82f6' } }}
       />
     </div>
@@ -531,6 +557,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<GameScreen />} />
         <Route path="/sign-in/*" element={<SignInPage />} />
+        <Route path="/sign-up/*" element={<SignUpPage />} />
       </Routes>
     </BrowserRouter>
   );
