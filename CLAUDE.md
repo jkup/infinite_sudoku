@@ -67,6 +67,10 @@ CSS custom properties on `:root` with `data-theme` attribute switching. Four the
 
 In killer mode, individual cell borders are uniform thin lines (no thick box boundaries). The dashed cage borders come from an SVG overlay (`CageOverlay.tsx`) positioned absolutely over the grid. The outer board border is a 2px solid line on the grid container in `Board.tsx`.
 
+### Authentication
+
+Sign-in uses a dedicated `/sign-in` route with Clerk's `<SignIn />` component (not Clerk's modal mode, which breaks on mobile when users swipe to switch apps). After successful sign-in, the user is redirected back to `/`.
+
 ### Mobile Layout
 
 - Title ("Infinite Sudoku") is hidden on small screens (`hidden sm:block`)
