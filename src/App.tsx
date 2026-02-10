@@ -224,8 +224,7 @@ function SignInPage() {
       style={{ backgroundColor: 'var(--color-bg)' }}
     >
       <SignIn
-        routing="path"
-        path="/sign-in"
+        routing="virtual"
         signUpUrl="/sign-up"
         appearance={{ variables: { colorPrimary: theme === 'dark' ? '#60a5fa' : '#3b82f6' } }}
       />
@@ -250,8 +249,7 @@ function SignUpPage() {
       style={{ backgroundColor: 'var(--color-bg)' }}
     >
       <SignUp
-        routing="path"
-        path="/sign-up"
+        routing="virtual"
         signInUrl="/sign-in"
         appearance={{ variables: { colorPrimary: theme === 'dark' ? '#60a5fa' : '#3b82f6' } }}
       />
@@ -556,8 +554,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<GameScreen />} />
-        <Route path="/sign-in/*" element={<SignInPage />} />
-        <Route path="/sign-up/*" element={<SignUpPage />} />
+        <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/sign-up" element={<SignUpPage />} />
       </Routes>
     </BrowserRouter>
   );
