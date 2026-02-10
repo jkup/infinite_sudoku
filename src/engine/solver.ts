@@ -452,7 +452,10 @@ function forEachUnit(fn: (cells: [number, number][]) => void): void {
  * Solve a puzzle using human-style logic techniques.
  * Returns the result including the highest technique level required.
  */
-export function solveWithLogic(puzzle: (Digit | null)[][]): SolveResult {
+export function solveWithLogic(
+  puzzle: (Digit | null)[][],
+  maxTechniqueLevel?: number,
+): SolveResult {
   const grid = puzzle.map((row) => [...row]);
   const candidates = createCandidates(grid);
   let maxTechnique = 0;
@@ -469,7 +472,7 @@ export function solveWithLogic(puzzle: (Digit | null)[][]): SolveResult {
   };
 
   // Apply techniques in order of difficulty
-  const techniques: [number, () => boolean][] = [
+  const allTechniques: [number, () => boolean][] = [
     [Technique.NakedSingle, () => nakedSingles(grid, candidates)],
     [Technique.HiddenSingle, () => hiddenSingles(grid, candidates)],
     [Technique.PointingPair, () => pointingPairs(candidates)],
@@ -479,6 +482,9 @@ export function solveWithLogic(puzzle: (Digit | null)[][]): SolveResult {
     [Technique.NakedTriple, () => nakedTriples(candidates)],
     [Technique.XWing, () => xWing(candidates)],
   ];
+  const techniques = maxTechniqueLevel !== undefined
+    ? allTechniques.filter(([level]) => level <= maxTechniqueLevel)
+    : allTechniques;
 
   let progress = true;
   while (progress && !isSolved() && !hasContradiction()) {

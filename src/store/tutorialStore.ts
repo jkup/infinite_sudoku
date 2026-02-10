@@ -136,13 +136,16 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
       }
     }, 1000);
 
+    // Auto-select the first focus cell so the player sees where to start
+    const firstFocus = tutorial.focusCells.length > 0 ? tutorial.focusCells[0] : null;
+
     useGameStore.setState({
       grid: practiceGrid,
       puzzle: tutorial.practicePuzzle,
       mode: tutorial.practicePuzzle.mode,
       difficulty: tutorial.practicePuzzle.difficulty as Difficulty,
       status: 'playing',
-      selectedCell: null,
+      selectedCell: firstFocus,
       inputMode: 'digit',
       history: [],
       historyIndex: -1,

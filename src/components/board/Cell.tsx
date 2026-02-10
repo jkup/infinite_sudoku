@@ -8,6 +8,7 @@ type CellProps = {
   isHighlighted: boolean;
   isDigitMatch: boolean;
   isConflict: boolean;
+  isTutorialTarget: boolean;
   isKillerMode: boolean;
   cageSum: number | null;
   gridSize: number;
@@ -31,7 +32,7 @@ const NOTE_GRID: Record<Digit, { gridRow: number; gridCol: number }> = {
   9: { gridRow: 3, gridCol: 3 },
 };
 
-function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isKillerMode, cageSum, gridSize, onClick }: CellProps) {
+function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isTutorialTarget, isKillerMode, cageSum, gridSize, onClick }: CellProps) {
   const { position, digit, isGiven, cornerNotes, centerNotes } = cell;
   const { row, col } = position;
   const { boxRows, boxCols } = getBoxDimensions(gridSize);
@@ -41,6 +42,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
   let bgColor: string;
   if (isSelected) bgColor = 'var(--color-cell-selected)';
   else if (isConflict) bgColor = 'var(--color-cell-conflict)';
+  else if (isTutorialTarget) bgColor = 'var(--color-tutorial-target)';
   else if (isDigitMatch) bgColor = 'var(--color-cell-digit-match)';
   else if (isHighlighted) bgColor = 'var(--color-cell-highlighted)';
   else if (isGiven && !isKillerMode) bgColor = 'var(--color-cell-given)';

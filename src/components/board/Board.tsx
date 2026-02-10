@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { useTutorialStore, getTutorialById } from '../../store/tutorialStore';
 import { usePreferencesStore } from '../../store/preferencesStore';
 import { getBoxForSize } from '../../engine/types';
 import type { CellPosition } from '../../engine/types';
@@ -14,6 +15,21 @@ export default function Board() {
   const selectCell = useGameStore((s) => s.selectCell);
   const puzzle = useGameStore((s) => s.puzzle);
   const checkAnswers = usePreferencesStore((s) => s.checkAnswers);
+  const tutorialPhase = useTutorialStore((s) => s.phase);
+  const activeTutorialId = useTutorialStore((s) => s.activeTutorialId);
+  const isInTutorialPractice = tutorialPhase === 'practice';
+
+  // Build a set of focus cell keys for fast lookup during tutorial practice
+  const tutorialFocusSet = useMemo(() => {
+    if (!isInTutorialPractice || !activeTutorialId) return null;
+    const tutorial = getTutorialById(activeTutorialId);
+    if (!tutorial) return null;
+    const set = new Set<string>();
+    for (const fc of tutorial.focusCells) {
+      set.add(`${fc.row},${fc.col}`);
+    }
+    return set;
+  }, [isInTutorialPractice, activeTutorialId]);
 
   if (grid.length === 0) return null;
 
@@ -90,6 +106,7 @@ export default function Board() {
               isHighlighted={isHighlighted(row, col)}
               isDigitMatch={isDigitMatch(row, col)}
               isConflict={isConflict && !isSelected}
+              isTutorialTarget={tutorialFocusSet !== null && cell.digit === null && tutorialFocusSet.has(`${row},${col}`)}
               isKillerMode={!!isKiller}
               cageSum={cageLabels.get(`${row},${col}`) ?? null}
               gridSize={gridSize}
