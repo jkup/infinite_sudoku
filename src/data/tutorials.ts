@@ -125,15 +125,15 @@ export const TUTORIALS: TutorialDefinition[] = [
     name: 'Hidden Single',
     difficulty: 'Easy',
     explanation: [
-      'A Hidden Single is when a digit can only go in one place within a row, column, or box — even though that cell might have other candidates too.',
-      'In the highlighted box, digit 5 can only go in the target cell. The other empty cells in the box are blocked from containing 5 by digits in their rows or columns.',
-      'Unlike Naked Singles where you eliminate candidates from one cell, Hidden Singles require scanning an entire unit (row, column, or box) to find where a specific digit must go.',
+      'A Hidden Single is when a digit can only go in one place within a row, column, or box — even though that cell might have other candidates too. It\'s called "hidden" because the cell doesn\'t stand out on its own; you find it by scanning the whole unit for a digit with only one possible home.',
+      'Look at the blue box — it has three empty cells with their candidates shown. Where can 5 go? The top-left empty cell has only {2, 8} — no 5, because column 3 already contains a 5 (green). The bottom-right empty cell also has {2, 8} — no 5, because row 2 already has one (green). Only the red target cell has 5 among its candidates, so it must be 5!',
+      'The key shift from Naked Singles: instead of asking "what can go in this cell?", ask "where can this digit go in this unit?" Scan each row, column, and box for digits that have only one possible position.',
     ],
     lessonBoard: grid([
       '913006470',
       '600931005',
       '005740931',
-      '108009340',
+      '108509340',
       '340010809',
       '009304010',
       '091400503',
@@ -141,7 +141,9 @@ export const TUTORIALS: TutorialDefinition[] = [
       '034065190',
     ]),
     highlightCells: [
+      // Target cell — the Hidden Single
       { row: 0, col: 4, color: 'target' },
+      // Other cells in the top-middle box (the unit being scanned)
       { row: 0, col: 3, color: 'primary' },
       { row: 0, col: 5, color: 'primary' },
       { row: 1, col: 3, color: 'primary' },
@@ -150,39 +152,46 @@ export const TUTORIALS: TutorialDefinition[] = [
       { row: 2, col: 3, color: 'primary' },
       { row: 2, col: 4, color: 'primary' },
       { row: 2, col: 5, color: 'primary' },
+      // Blocking 5s that eliminate 5 from the other empty cells
+      { row: 3, col: 3, color: 'secondary' },  // 5 in col 3 → blocks (0,3)
+      { row: 2, col: 2, color: 'secondary' },  // 5 in row 2 → blocks (2,5)
     ],
-    highlightNotes: [{ row: 0, col: 4, notes: [2, 5, 8] }],
+    highlightNotes: [
+      { row: 0, col: 4, notes: [2, 5, 8] },  // Target: has 5
+      { row: 0, col: 3, notes: [2, 8] },      // Blocked: no 5
+      { row: 2, col: 5, notes: [2, 8] },      // Blocked: no 5
+    ],
     practicePuzzle: {
       initial: grid([
-        '000003850',
-        '001408002',
-        '780000041',
-        '000002937',
-        '800300005',
-        '000600428',
-        '600070090',
-        '000025016',
-        '027030504',
+        '073895620',
+        '094306870',
+        '080207010',
+        '400938051',
+        '000172346',
+        '310654789',
+        '721463598',
+        '645789132',
+        '839521467',
       ]),
       solution: grid([
-        '264713859',
-        '931458672',
-        '785269341',
-        '416582937',
-        '892347165',
-        '573691428',
-        '658174293',
-        '349825716',
-        '127936584',
+        '173895624',
+        '294316875',
+        '586247913',
+        '467938251',
+        '958172346',
+        '312654789',
+        '721463598',
+        '645789132',
+        '839521467',
       ]) as Digit[][],
       difficulty: 'easy',
       mode: 'classic',
       gridSize: 9,
     },
     focusCells: [
-      { row: 0, col: 0 },
-      { row: 0, col: 1 },
-      { row: 0, col: 2 },
+      { row: 1, col: 0 },
+      { row: 2, col: 8 },
+      { row: 3, col: 2 },
     ],
   },
 
