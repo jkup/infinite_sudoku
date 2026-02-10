@@ -38,10 +38,10 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
   const { boxRows, boxCols } = getBoxDimensions(gridSize);
   const lastIdx = gridSize - 1;
 
-  // Background color
+  // Background color — conflict takes priority over selected so errors are immediately visible
   let bgColor: string;
-  if (isSelected) bgColor = 'var(--color-cell-selected)';
-  else if (isConflict) bgColor = 'var(--color-cell-conflict)';
+  if (isConflict) bgColor = 'var(--color-cell-conflict)';
+  else if (isSelected) bgColor = 'var(--color-cell-selected)';
   else if (isTutorialTarget) bgColor = 'var(--color-tutorial-target)';
   else if (isDigitMatch) bgColor = 'var(--color-cell-digit-match)';
   else if (isHighlighted) bgColor = 'var(--color-cell-highlighted)';

@@ -105,7 +105,7 @@ export default function Board() {
               isSelected={isSelected}
               isHighlighted={isHighlighted(row, col)}
               isDigitMatch={isDigitMatch(row, col)}
-              isConflict={isConflict && !isSelected}
+              isConflict={isConflict}
               isTutorialTarget={tutorialFocusSet !== null && cell.digit === null && tutorialFocusSet.has(`${row},${col}`)}
               isKillerMode={!!isKiller}
               cageSum={cageLabels.get(`${row},${col}`) ?? null}
