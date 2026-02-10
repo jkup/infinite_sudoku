@@ -257,6 +257,27 @@ function GameScreen() {
   const [pendingGame, setPendingGame] = useState<{ difficulty: Difficulty; mode: GameMode } | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [boardAnim, setBoardAnim] = useState<string | null>(null);
+  const [tutorialFocusDone, setTutorialFocusDone] = useState(false);
+
+  // Detect when tutorial focus cells are all correctly filled
+  useEffect(() => {
+    if (!isInTutorialPractice || !activeTutorial) {
+      setTutorialFocusDone(false);
+      return;
+    }
+    const check = () => {
+      const { grid } = useGameStore.getState();
+      if (grid.length === 0) return;
+      const done = activeTutorial.focusCells.every(({ row, col }) => {
+        const cell = grid[row]?.[col];
+        const solution = activeTutorial.practicePuzzle.solution[row]?.[col];
+        return cell?.digit === solution;
+      });
+      if (done) setTutorialFocusDone(true);
+    };
+    check();
+    return useGameStore.subscribe(check);
+  }, [isInTutorialPractice, activeTutorial]);
 
   // Trigger board slide animation on hint transitions
   useEffect(() => {
@@ -376,7 +397,9 @@ function GameScreen() {
       )}
 
       {/* Tutorial practice completion overlay */}
-      {status === 'completed' && isInTutorialPractice && (
+      {(tutorialFocusDone || status === 'completed') && isInTutorialPractice && (
+        <>
+        <Confetti />
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Tutorial complete">
           <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127891;</div>
@@ -395,6 +418,7 @@ function GameScreen() {
             </button>
           </div>
         </div>
+        </>
       )}
 
       {/* Completion overlay — different for hint puzzles vs regular */}
