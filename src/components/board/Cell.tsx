@@ -38,10 +38,10 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
   const { boxRows, boxCols } = getBoxDimensions(gridSize);
   const lastIdx = gridSize - 1;
 
-  // Background color — conflict takes priority over selected so errors are immediately visible
+  // Background color — selected takes priority over conflict so focus is always visible
   let bgColor: string;
-  if (isConflict) bgColor = 'var(--color-cell-conflict)';
-  else if (isSelected) bgColor = 'var(--color-cell-selected)';
+  if (isSelected) bgColor = 'var(--color-cell-selected)';
+  else if (isConflict) bgColor = 'var(--color-cell-conflict)';
   else if (isTutorialTarget) bgColor = 'var(--color-tutorial-target)';
   else if (isDigitMatch) bgColor = 'var(--color-cell-digit-match)';
   else if (isHighlighted) bgColor = 'var(--color-cell-highlighted)';
@@ -85,7 +85,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
 
   return (
     <div
-      className="relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95"
+      className="relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none"
       style={borderStyle}
       onClick={() => onClick(position)}
       tabIndex={isSelected ? 0 : -1}
