@@ -72,7 +72,7 @@ export default function Board() {
     return cell.digit === selectedDigit;
   };
 
-  const handleClick = (pos: CellPosition) => {
+  const handlePointerDown = (pos: CellPosition) => {
     selectCell(pos);
   };
 
@@ -110,7 +110,7 @@ export default function Board() {
               isKillerMode={!!isKiller}
               cageSum={cageLabels.get(`${row},${col}`) ?? null}
               gridSize={gridSize}
-              onClick={handleClick}
+              onPointerDown={handlePointerDown}
             />
           );
         })}

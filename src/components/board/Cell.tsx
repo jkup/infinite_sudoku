@@ -12,7 +12,7 @@ type CellProps = {
   isKillerMode: boolean;
   cageSum: number | null;
   gridSize: number;
-  onClick: (pos: CellPosition) => void;
+  onPointerDown: (pos: CellPosition) => void;
 };
 
 /**
@@ -32,7 +32,7 @@ const NOTE_GRID: Record<Digit, { gridRow: number; gridCol: number }> = {
   9: { gridRow: 3, gridCol: 3 },
 };
 
-function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isTutorialTarget, isKillerMode, cageSum, gridSize, onClick }: CellProps) {
+function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isTutorialTarget, isKillerMode, cageSum, gridSize, onPointerDown }: CellProps) {
   const { position, digit, isGiven, cornerNotes, centerNotes } = cell;
   const { row, col } = position;
   const { boxRows, boxCols } = getBoxDimensions(gridSize);
@@ -87,7 +87,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
     <div
       className="relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none"
       style={borderStyle}
-      onClick={() => onClick(position)}
+      onPointerDown={() => onPointerDown(position)}
       tabIndex={isSelected ? 0 : -1}
       role="gridcell"
       aria-selected={isSelected}
