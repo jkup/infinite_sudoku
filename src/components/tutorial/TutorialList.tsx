@@ -1,6 +1,8 @@
 import { useTutorialStore } from '../../store/tutorialStore';
 import { TUTORIALS } from '../../data/tutorials';
 
+const ENABLED_TUTORIALS = new Set(['naked-single', 'hidden-single', 'pointing-pair']);
+
 const LEVEL_GROUPS = [
   { label: 'Beginner', level: 1 },
   { label: 'Easy', level: 2 },
@@ -65,19 +67,28 @@ export default function TutorialList() {
                 <div className="space-y-1">
                   {groupTutorials.map((tutorial) => {
                     const isCompleted = completedTutorials.has(tutorial.id);
+                    const isComingSoon = !ENABLED_TUTORIALS.has(tutorial.id);
                     return (
                       <button
                         key={tutorial.id}
-                        onClick={() => startLesson(tutorial.id)}
+                        onClick={() => !isComingSoon && startLesson(tutorial.id)}
+                        disabled={isComingSoon}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors text-left"
                         style={{
                           backgroundColor: 'var(--color-btn-bg)',
                           borderColor: 'var(--color-cell-border)',
-                          color: 'var(--color-text)',
+                          color: isComingSoon ? 'var(--color-text-muted)' : 'var(--color-text)',
+                          opacity: isComingSoon ? 0.6 : 1,
+                          cursor: isComingSoon ? 'default' : 'pointer',
                         }}
                       >
                         <span className="text-sm font-medium flex-1">{tutorial.name}</span>
-                        {isCompleted && (
+                        {isComingSoon && (
+                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                            Coming Soon
+                          </span>
+                        )}
+                        {isCompleted && !isComingSoon && (
                           <span
                             className="text-base leading-none"
                             style={{ color: 'var(--color-btn-active-bg)' }}
