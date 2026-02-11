@@ -43,6 +43,7 @@ type GameState = {
   // Timer
   elapsedMs: number;
   timerInterval: ReturnType<typeof setInterval> | null;
+  pausedByUser: boolean;
 
   // Conflicts
   conflicts: Map<string, CellPosition[]>;
@@ -62,9 +63,10 @@ type GameState = {
   loadSavedGame: () => boolean;
   undo: () => void;
   redo: () => void;
-  tick: () => void;
   pauseGame: () => void;
   resumeGame: () => void;
+  autoPause: () => void;
+  autoResume: () => void;
 };
 
 function updateConflicts(grid: Grid): Map<string, CellPosition[]> {
@@ -241,6 +243,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   historyIndex: -1,
   elapsedMs: 0,
   timerInterval: null,
+  pausedByUser: false,
   conflicts: new Map(),
   hintsUsed: 0,
   errorsMade: 0,
@@ -272,6 +275,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         historyIndex: -1,
         elapsedMs: 0,
         timerInterval: interval,
+        pausedByUser: false,
         conflicts: new Map(),
         hintsUsed: 0,
         errorsMade: 0,
@@ -628,6 +632,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       historyIndex: saved.historyIndex,
       elapsedMs: saved.elapsedMs,
       timerInterval: interval,
+      pausedByUser: false,
       selectedCell: null,
       conflicts: updateConflicts(saved.grid),
       hintsUsed: 0,
@@ -693,16 +698,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  tick: () => {
-    set((state) => ({ elapsedMs: state.elapsedMs + 1000 }));
-  },
-
   pauseGame: () => {
-    set({ status: 'paused' });
+    set({ status: 'paused', pausedByUser: true });
   },
 
   resumeGame: () => {
-    set({ status: 'playing' });
+    set({ status: 'playing', pausedByUser: false });
+  },
+
+  autoPause: () => {
+    const { status } = get();
+    if (status === 'playing') {
+      set({ status: 'paused' });
+    }
+  },
+
+  autoResume: () => {
+    const { status, pausedByUser } = get();
+    if (status === 'paused' && !pausedByUser) {
+      set({ status: 'playing' });
+    }
   },
 }));
 

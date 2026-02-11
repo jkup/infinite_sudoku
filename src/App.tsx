@@ -317,6 +317,19 @@ function GameScreen() {
 
   useKeyboard(useCallback(() => setShowKeyboardHelp((v) => !v), []));
 
+  // Auto-pause when tab/app is hidden, auto-resume when visible
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        useGameStore.getState().autoPause();
+      } else {
+        useGameStore.getState().autoResume();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   const loadSavedGame = useGameStore((s) => s.loadSavedGame);
 
   // Start a game on first load — try restoring a saved game first
