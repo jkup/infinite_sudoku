@@ -269,6 +269,8 @@ function GameScreen() {
   const completeHintPuzzle = useHintStore((s) => s.completeHintPuzzle);
   const hintTransition = useHintStore((s) => s.transition);
   const clearTransition = useHintStore((s) => s.clearTransition);
+  const hintRevealCell = useHintStore((s) => s.hintRevealCell);
+  const clearHintReveal = useHintStore((s) => s.clearHintReveal);
   const isInHintStack = hintStack.length > 0;
 
   const tutorialPhase = useTutorialStore((s) => s.phase);
@@ -314,6 +316,13 @@ function GameScreen() {
     }, 300);
     return () => clearTimeout(timer);
   }, [hintTransition, clearTransition]);
+
+  // Clear hint reveal highlight after the animation completes
+  useEffect(() => {
+    if (!hintRevealCell) return;
+    const timer = setTimeout(clearHintReveal, 2000);
+    return () => clearTimeout(timer);
+  }, [hintRevealCell, clearHintReveal]);
 
   useKeyboard(useCallback(() => setShowKeyboardHelp((v) => !v), []));
 

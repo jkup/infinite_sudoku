@@ -8,6 +8,7 @@ type CellProps = {
   isHighlighted: boolean;
   isDigitMatch: boolean;
   isConflict: boolean;
+  isHintReveal: boolean;
   isTutorialTarget: boolean;
   isKillerMode: boolean;
   cageSum: number | null;
@@ -32,7 +33,7 @@ const NOTE_GRID: Record<Digit, { gridRow: number; gridCol: number }> = {
   9: { gridRow: 3, gridCol: 3 },
 };
 
-function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isTutorialTarget, isKillerMode, cageSum, gridSize, onPointerDown }: CellProps) {
+function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isHintReveal, isTutorialTarget, isKillerMode, cageSum, gridSize, onPointerDown }: CellProps) {
   const { position, digit, isGiven, cornerNotes, centerNotes } = cell;
   const { row, col } = position;
   const { boxRows, boxCols } = getBoxDimensions(gridSize);
@@ -85,7 +86,7 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
 
   return (
     <div
-      className="relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none"
+      className={`relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none${isHintReveal ? ' hint-reveal' : ''}`}
       style={borderStyle}
       onPointerDown={() => onPointerDown(position)}
       tabIndex={isSelected ? 0 : -1}

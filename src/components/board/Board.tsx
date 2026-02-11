@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { useHintStore } from '../../store/hintStore';
 import { useTutorialStore, getTutorialById } from '../../store/tutorialStore';
 import { usePreferencesStore } from '../../store/preferencesStore';
 import { getBoxForSize } from '../../engine/types';
@@ -15,6 +16,7 @@ export default function Board() {
   const selectCell = useGameStore((s) => s.selectCell);
   const puzzle = useGameStore((s) => s.puzzle);
   const checkAnswers = usePreferencesStore((s) => s.checkAnswers);
+  const hintRevealCell = useHintStore((s) => s.hintRevealCell);
   const tutorialPhase = useTutorialStore((s) => s.phase);
   const activeTutorialId = useTutorialStore((s) => s.activeTutorialId);
   const isInTutorialPractice = tutorialPhase === 'practice';
@@ -106,6 +108,7 @@ export default function Board() {
               isHighlighted={isHighlighted(row, col)}
               isDigitMatch={isDigitMatch(row, col)}
               isConflict={isConflict}
+              isHintReveal={hintRevealCell !== null && hintRevealCell.row === row && hintRevealCell.col === col}
               isTutorialTarget={tutorialFocusSet !== null && cell.digit === null && tutorialFocusSet.has(`${row},${col}`)}
               isKillerMode={!!isKiller}
               cageSum={cageLabels.get(`${row},${col}`) ?? null}

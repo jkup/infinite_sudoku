@@ -40,6 +40,7 @@ export type TransitionDirection = 'deeper' | 'back' | null;
 type HintState = {
   stack: StackEntry[];
   transition: TransitionDirection;
+  hintRevealCell: CellPosition | null;
 
   // Actions
   requestHint: () => void;
@@ -47,6 +48,7 @@ type HintState = {
   abandonHintPuzzle: () => void;
   abandonToLevel: (level: number) => void;
   clearTransition: () => void;
+  clearHintReveal: () => void;
 };
 
 function cloneGrid(grid: Grid): Grid {
@@ -74,8 +76,10 @@ function cloneHistory(history: HistoryEntry[]): HistoryEntry[] {
 export const useHintStore = create<HintState>((set, get) => ({
   stack: [],
   transition: null,
+  hintRevealCell: null,
 
   clearTransition: () => set({ transition: null }),
+  clearHintReveal: () => set({ hintRevealCell: null }),
 
   requestHint: () => {
     const game = useGameStore.getState();
@@ -198,7 +202,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     const restoredHistory = cloneHistory(parent.history).slice(0, parent.historyIndex + 1);
     restoredHistory.push(hintChange);
 
-    set({ stack: newStack, transition: 'back' });
+    set({ stack: newStack, transition: 'back', hintRevealCell: parent.hintCell });
 
     // Restore parent game state with the hint applied
     const prevInterval = useGameStore.getState().timerInterval;
@@ -228,7 +232,7 @@ export const useHintStore = create<HintState>((set, get) => ({
       hintsUsed: parent.hintsUsed,
       errorsMade: parent.errorsMade,
       timerInterval: interval,
-      selectedCell: null,
+      selectedCell: parent.hintCell,
       conflicts,
     });
   },
