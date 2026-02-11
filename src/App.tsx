@@ -228,6 +228,13 @@ function SignInPage() {
         signUpUrl="/sign-up"
         appearance={{ variables: { colorPrimary: theme === 'dark' ? '#60a5fa' : '#3b82f6' } }}
       />
+      <button
+        onClick={() => navigate('/')}
+        className="mt-4 text-sm font-medium transition-colors"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        &larr; Back to game
+      </button>
     </div>
   );
 }
@@ -253,6 +260,13 @@ function SignUpPage() {
         signInUrl="/sign-in"
         appearance={{ variables: { colorPrimary: theme === 'dark' ? '#60a5fa' : '#3b82f6' } }}
       />
+      <button
+        onClick={() => navigate('/')}
+        className="mt-4 text-sm font-medium transition-colors"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        &larr; Back to game
+      </button>
     </div>
   );
 }
