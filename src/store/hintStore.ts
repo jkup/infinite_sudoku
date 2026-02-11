@@ -174,10 +174,29 @@ export const useHintStore = create<HintState>((set, get) => ({
 
     // Reveal the hinted cell in the parent grid
     const restoredGrid = cloneGrid(parent.grid);
-    const target = restoredGrid[parent.hintCell.row][parent.hintCell.col];
+    const { row, col } = parent.hintCell;
+    const target = restoredGrid[row][col];
+
+    // Build a history entry for the hint reveal so undo works
+    const hintChange: HistoryEntry = {
+      changes: [{
+        position: { row, col },
+        previousDigit: target.digit,
+        newDigit: parent.hintDigit,
+        previousCornerNotes: new Set(target.cornerNotes),
+        newCornerNotes: new Set<Digit>(),
+        previousCenterNotes: new Set(target.centerNotes),
+        newCenterNotes: new Set<Digit>(),
+      }],
+    };
+
     target.digit = parent.hintDigit;
     target.cornerNotes.clear();
     target.centerNotes.clear();
+
+    // Append the hint reveal to the parent's history
+    const restoredHistory = cloneHistory(parent.history).slice(0, parent.historyIndex + 1);
+    restoredHistory.push(hintChange);
 
     set({ stack: newStack, transition: 'back' });
 
@@ -203,8 +222,8 @@ export const useHintStore = create<HintState>((set, get) => ({
       difficulty: parent.difficulty,
       status: isComplete ? 'completed' : 'playing',
       inputMode: parent.inputMode,
-      history: cloneHistory(parent.history),
-      historyIndex: parent.historyIndex,
+      history: restoredHistory,
+      historyIndex: restoredHistory.length - 1,
       elapsedMs: parent.elapsedMs,
       hintsUsed: parent.hintsUsed,
       errorsMade: parent.errorsMade,
