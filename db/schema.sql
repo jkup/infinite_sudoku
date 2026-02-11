@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS game_results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     clerk_user_id TEXT NOT NULL,
     mode TEXT NOT NULL,            -- 'classic' | 'killer'
-    difficulty TEXT NOT NULL,      -- 'beginner' | 'easy' | 'medium' | 'hard' | 'expert'
+    difficulty TEXT NOT NULL,      -- 'easy' | 'medium' | 'hard' | 'expert'
     solve_time_ms INTEGER NOT NULL,
     hints_used INTEGER DEFAULT 0,
     max_hint_depth INTEGER DEFAULT 0,

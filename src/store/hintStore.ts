@@ -91,7 +91,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     const hintDigit = game.puzzle.solution[row][col] as Digit;
     const currentDiffIndex = DIFFICULTY_ORDER.indexOf(game.difficulty);
 
-    // At beginner, hints are free — just reveal the answer
+    // At easy, hints are free — just reveal the answer
     if (currentDiffIndex <= 0) {
       const newGrid = cloneGrid(game.grid);
       newGrid[row][col].digit = hintDigit;

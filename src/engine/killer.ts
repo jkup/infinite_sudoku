@@ -6,7 +6,6 @@ import type { Cage, CellPosition, Digit, Difficulty } from './types';
  * Harder = larger cages and more of them covering the board.
  */
 const CAGE_SIZE_RANGES: Record<Difficulty, { min: number; max: number }> = {
-  beginner: { min: 2, max: 3 },
   easy: { min: 2, max: 3 },
   medium: { min: 2, max: 4 },
   hard: { min: 2, max: 5 },

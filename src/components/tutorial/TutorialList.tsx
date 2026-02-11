@@ -48,7 +48,7 @@ export default function TutorialList() {
         </div>
 
         <p className="text-sm mb-4" style={{ color: 'var(--color-text-muted)' }}>
-          Learn the solving techniques used in Sudoku, from beginner to expert.
+          Learn the solving techniques used in Sudoku, from easy to expert.
         </p>
 
         <div className="space-y-4">

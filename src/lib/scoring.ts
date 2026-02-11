@@ -1,9 +1,8 @@
 import type { Difficulty, GameMode } from '../engine/types';
 
 const DIFFICULTY_MULTIPLIER: Record<Difficulty, number> = {
-  beginner: 1,
-  easy: 2,
-  medium: 4,
+  easy: 1,
+  medium: 3,
   hard: 8,
   expert: 16,
 };

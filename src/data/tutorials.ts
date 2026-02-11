@@ -105,7 +105,7 @@ export const TUTORIALS: TutorialDefinition[] = [
         '569712384',
         '837594216',
       ]) as Digit[][],
-      difficulty: 'beginner',
+      difficulty: 'easy',
       mode: 'classic',
       gridSize: 9,
     },

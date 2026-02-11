@@ -2,7 +2,6 @@ import { useHintStore } from '../../store/hintStore';
 import { useGameStore } from '../../store/gameStore';
 
 const DIFF_LABELS: Record<string, string> = {
-  beginner: 'Beginner',
   easy: 'Easy',
   medium: 'Medium',
   hard: 'Hard',

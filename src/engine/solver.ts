@@ -427,6 +427,153 @@ function xWing(candidates: Candidates): boolean {
   return found;
 }
 
+// --- Technique: Swordfish ---
+function swordfish(candidates: Candidates): boolean {
+  let found = false;
+
+  for (const d of DIGITS) {
+    // Row-based Swordfish
+    const rowPositions: number[][] = [];
+    for (let r = 0; r < 9; r++) {
+      const cols: number[] = [];
+      for (let c = 0; c < 9; c++) {
+        if (candidates[r][c].has(d)) cols.push(c);
+      }
+      rowPositions.push(cols);
+    }
+
+    for (let r1 = 0; r1 < 9; r1++) {
+      if (rowPositions[r1].length < 2 || rowPositions[r1].length > 3) continue;
+      for (let r2 = r1 + 1; r2 < 9; r2++) {
+        if (rowPositions[r2].length < 2 || rowPositions[r2].length > 3) continue;
+        for (let r3 = r2 + 1; r3 < 9; r3++) {
+          if (rowPositions[r3].length < 2 || rowPositions[r3].length > 3) continue;
+          const colUnion = new Set([...rowPositions[r1], ...rowPositions[r2], ...rowPositions[r3]]);
+          if (colUnion.size !== 3) continue;
+
+          // Eliminate digit from these 3 columns in all other rows
+          for (const c of colUnion) {
+            for (let r = 0; r < 9; r++) {
+              if (r === r1 || r === r2 || r === r3) continue;
+              if (candidates[r][c].delete(d)) found = true;
+            }
+          }
+        }
+      }
+    }
+
+    // Column-based Swordfish
+    const colPositions: number[][] = [];
+    for (let c = 0; c < 9; c++) {
+      const rows: number[] = [];
+      for (let r = 0; r < 9; r++) {
+        if (candidates[r][c].has(d)) rows.push(r);
+      }
+      colPositions.push(rows);
+    }
+
+    for (let c1 = 0; c1 < 9; c1++) {
+      if (colPositions[c1].length < 2 || colPositions[c1].length > 3) continue;
+      for (let c2 = c1 + 1; c2 < 9; c2++) {
+        if (colPositions[c2].length < 2 || colPositions[c2].length > 3) continue;
+        for (let c3 = c2 + 1; c3 < 9; c3++) {
+          if (colPositions[c3].length < 2 || colPositions[c3].length > 3) continue;
+          const rowUnion = new Set([...colPositions[c1], ...colPositions[c2], ...colPositions[c3]]);
+          if (rowUnion.size !== 3) continue;
+
+          // Eliminate digit from these 3 rows in all other columns
+          for (const r of rowUnion) {
+            for (let c = 0; c < 9; c++) {
+              if (c === c1 || c === c2 || c === c3) continue;
+              if (candidates[r][c].delete(d)) found = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return found;
+}
+
+// --- Technique: Y-Wing ---
+function yWing(candidates: Candidates): boolean {
+  let found = false;
+
+  // Find all bi-value cells (cells with exactly 2 candidates)
+  const biValueCells: [number, number][] = [];
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (candidates[r][c].size === 2) {
+        biValueCells.push([r, c]);
+      }
+    }
+  }
+
+  for (const [pr, pc] of biValueCells) {
+    const pivotCands = [...candidates[pr][pc]] as Digit[];
+    const [a, b] = pivotCands;
+
+    // Find peers of the pivot that are also bi-value
+    for (const [w1r, w1c] of biValueCells) {
+      if (w1r === pr && w1c === pc) continue;
+      if (!isPeer(pr, pc, w1r, w1c)) continue;
+      const w1Cands = [...candidates[w1r][w1c]] as Digit[];
+
+      // Wing 1 must share exactly one candidate with pivot
+      let sharedWithW1: Digit | null = null;
+      let w1Other: Digit | null = null;
+      if (w1Cands.includes(a) && !w1Cands.includes(b)) {
+        sharedWithW1 = a;
+        w1Other = w1Cands.find((d) => d !== a)!;
+      } else if (w1Cands.includes(b) && !w1Cands.includes(a)) {
+        sharedWithW1 = b;
+        w1Other = w1Cands.find((d) => d !== b)!;
+      } else {
+        continue;
+      }
+
+      const pivotOther = sharedWithW1 === a ? b : a;
+
+      for (const [w2r, w2c] of biValueCells) {
+        if (w2r === pr && w2c === pc) continue;
+        if (w2r === w1r && w2c === w1c) continue;
+        if (!isPeer(pr, pc, w2r, w2c)) continue;
+        const w2Cands = [...candidates[w2r][w2c]] as Digit[];
+
+        // Wing 2 must share the OTHER pivot candidate, and also have w1Other
+        if (!w2Cands.includes(pivotOther) || !w2Cands.includes(w1Other)) continue;
+        if (w2Cands.includes(sharedWithW1)) continue;
+
+        // Eliminate w1Other from cells that see both wings
+        const eliminationDigit = w1Other;
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (r === w1r && c === w1c) continue;
+            if (r === w2r && c === w2c) continue;
+            if (r === pr && c === pc) continue;
+            if (!candidates[r][c].has(eliminationDigit)) continue;
+            if (isPeer(r, c, w1r, w1c) && isPeer(r, c, w2r, w2c)) {
+              candidates[r][c].delete(eliminationDigit);
+              found = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return found;
+}
+
+function isPeer(r1: number, c1: number, r2: number, c2: number): boolean {
+  if (r1 === r2 && c1 === c2) return false;
+  if (r1 === r2) return true;  // Same row
+  if (c1 === c2) return true;  // Same column
+  // Same box
+  return getBox(r1, c1) === getBox(r2, c2);
+}
+
 // --- Helper: iterate all units (rows, cols, boxes) ---
 function forEachUnit(fn: (cells: [number, number][]) => void): void {
   for (let r = 0; r < 9; r++) {
@@ -481,6 +628,8 @@ export function solveWithLogic(
     [Technique.HiddenPair, () => hiddenPairs(candidates)],
     [Technique.NakedTriple, () => nakedTriples(candidates)],
     [Technique.XWing, () => xWing(candidates)],
+    [Technique.Swordfish, () => swordfish(candidates)],
+    [Technique.YWing, () => yWing(candidates)],
   ];
   const techniques = maxTechniqueLevel !== undefined
     ? allTechniques.filter(([level]) => level <= maxTechniqueLevel)
@@ -551,10 +700,9 @@ export function hasUniqueSolution(puzzle: (Digit | null)[][]): boolean {
  */
 export function techniqueToDifficulty(
   maxTechnique: number
-): 'beginner' | 'easy' | 'medium' | 'hard' | 'expert' {
-  if (maxTechnique <= Technique.NakedSingle) return 'beginner';
+): 'easy' | 'medium' | 'hard' | 'expert' {
   if (maxTechnique <= Technique.HiddenSingle) return 'easy';
-  if (maxTechnique <= Technique.BoxLineReduction) return 'medium';
+  if (maxTechnique <= Technique.NakedPair) return 'medium';
   if (maxTechnique <= Technique.NakedTriple) return 'hard';
   return 'expert';
 }

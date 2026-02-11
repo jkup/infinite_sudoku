@@ -68,9 +68,8 @@ function shuffle<T>(arr: T[]): T[] {
  * These are starting points — actual count may vary based on technique requirements.
  */
 const CLUE_TARGETS: Record<Difficulty, { min: number; max: number }> = {
-  beginner: { min: 40, max: 50 },
-  easy: { min: 34, max: 40 },
-  medium: { min: 28, max: 34 },
+  easy: { min: 36, max: 46 },
+  medium: { min: 28, max: 36 },
   hard: { min: 24, max: 28 },
   expert: { min: 20, max: 26 },
 };
@@ -139,9 +138,8 @@ export function generatePuzzle(
     const finalDifficulty = techniqueToDifficulty(finalResult.maxTechnique);
     const finalLevel = DIFFICULTY_ORDER.indexOf(finalDifficulty);
 
-    // Accept if it's at the target difficulty or one level below
-    // (one level below is acceptable — still a good puzzle)
-    if (finalResult.solved && finalLevel >= Math.max(0, targetLevel - 1)) {
+    // Accept only if it matches the target difficulty exactly
+    if (finalResult.solved && finalLevel === targetLevel) {
       const result: Puzzle = {
         initial: puzzle,
         solution,
@@ -161,7 +159,7 @@ export function generatePuzzle(
   const solution = generateFilledGrid();
   const puzzle = solution.map((row) => [...row]) as (Digit | null)[][];
 
-  // Remove cells conservatively for a beginner puzzle
+  // Remove cells conservatively for an easy puzzle
   const positions = shuffle(
     Array.from({ length: 81 }, (_, i) => ({
       row: Math.floor(i / 9),
@@ -171,7 +169,7 @@ export function generatePuzzle(
 
   let removed = 0;
   for (const { row, col } of positions) {
-    if (removed >= 81 - CLUE_TARGETS.beginner.max) break;
+    if (removed >= 81 - CLUE_TARGETS.easy.max) break;
     const saved = puzzle[row][col];
     puzzle[row][col] = null;
     if (!hasUniqueSolution(puzzle)) {
@@ -184,12 +182,12 @@ export function generatePuzzle(
   const fallback: Puzzle = {
     initial: puzzle,
     solution,
-    difficulty: 'beginner',
+    difficulty: 'easy',
     mode,
     gridSize: 9,
   };
   if (mode === 'killer') {
-    fallback.cages = generateCages(solution, 'beginner');
+    fallback.cages = generateCages(solution, 'easy');
   }
   return fallback;
 }

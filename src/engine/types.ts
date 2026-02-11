@@ -22,7 +22,7 @@ export type Cage = {
   cells: CellPosition[];
 };
 
-export type Difficulty = 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
 export type GameMode = 'classic' | 'killer';
 
@@ -59,7 +59,6 @@ export type HistoryEntry = {
 };
 
 export const DIFFICULTY_ORDER: Difficulty[] = [
-  'beginner',
   'easy',
   'medium',
   'hard',

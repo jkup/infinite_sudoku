@@ -105,9 +105,8 @@ function hasUniqueSolutionMini(puzzle: (Digit | null)[][]): boolean {
 }
 
 const MINI_CLUE_TARGETS: Record<Difficulty, { min: number; max: number }> = {
-  beginner: { min: 22, max: 26 },
-  easy:     { min: 18, max: 22 },
-  medium:   { min: 15, max: 18 },
+  easy:     { min: 20, max: 26 },
+  medium:   { min: 15, max: 20 },
   hard:     { min: 12, max: 15 },
   expert:   { min: 10, max: 14 },
 };

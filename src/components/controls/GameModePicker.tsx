@@ -4,7 +4,6 @@ import { DIFFICULTY_ORDER } from '../../engine/types';
 import type { Difficulty, GameMode } from '../../engine/types';
 
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  beginner: 'Beginner',
   easy: 'Easy',
   medium: 'Medium',
   hard: 'Hard',
