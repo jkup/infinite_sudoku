@@ -3,15 +3,11 @@
 
 import { parseGameResult, RequestValidationError } from '../lib/gameResult';
 
-interface Env {
-  DB: D1Database;
-}
-
 type RequestData = {
   clerkUserId: string;
 };
 
-export const onRequestGet: PagesFunction<Env, string, RequestData> = async (context) => {
+export const onRequestGet: PagesFunction<Cloudflare.Env, string, RequestData> = async (context) => {
   const userId = context.data.clerkUserId;
   const { DB } = context.env;
 
@@ -38,7 +34,7 @@ export const onRequestGet: PagesFunction<Env, string, RequestData> = async (cont
   });
 };
 
-export const onRequestPost: PagesFunction<Env, string, RequestData> = async (context) => {
+export const onRequestPost: PagesFunction<Cloudflare.Env, string, RequestData> = async (context) => {
   const userId = context.data.clerkUserId;
   const { DB } = context.env;
 

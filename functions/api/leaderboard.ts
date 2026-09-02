@@ -1,14 +1,10 @@
 // GET /api/leaderboard?date=YYYY-MM-DD&mode=classic
 
-interface Env {
-  DB: D1Database;
-}
-
 type RequestData = {
   clerkUserId: string;
 };
 
-export const onRequestGet: PagesFunction<Env, string, RequestData> = async (context) => {
+export const onRequestGet: PagesFunction<Cloudflare.Env, string, RequestData> = async (context) => {
   const { DB } = context.env;
   const url = new URL(context.request.url);
   const date = url.searchParams.get('date');

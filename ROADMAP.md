@@ -227,6 +227,7 @@ A task is complete when:
 ### QUAL-002: Type-check backend code with generated Cloudflare bindings
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Generate environment/runtime types from Wrangler configuration using the current supported workflow.

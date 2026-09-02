@@ -14,6 +14,7 @@ type LeaderboardGet = typeof getLeaderboard;
 function statsGetContext() {
   return createPagesEventContext<StatsGet>({
     request: new Request('https://infinitesudoku.com/api/stats') as never,
+    params: {},
     data: { clerkUserId: userId },
   });
 }
@@ -25,6 +26,7 @@ function statsPostContext(body: Record<string, unknown>) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }) as never,
+    params: {},
     data: { clerkUserId: userId },
   });
 }
@@ -32,6 +34,7 @@ function statsPostContext(body: Record<string, unknown>) {
 function leaderboardContext(query = '?date=2026-09-02&mode=classic') {
   return createPagesEventContext<LeaderboardGet>({
     request: new Request(`https://infinitesudoku.com/api/leaderboard${query}`) as never,
+    params: {},
     data: { clerkUserId: userId },
   });
 }
@@ -161,6 +164,7 @@ describe('Pages Functions with D1', () => {
       request: new Request('https://infinitesudoku.com/api/stats', {
         method: 'POST', body: '{}', headers: { 'Content-Type': 'text/plain' },
       }) as never,
+      params: {},
       data: { clerkUserId: userId },
     });
     const response = await postStats(context);
@@ -172,6 +176,7 @@ describe('Pages Functions with D1', () => {
       request: new Request('https://infinitesudoku.com/api/stats', {
         method: 'POST', body: '{', headers: { 'Content-Type': 'application/json' },
       }) as never,
+      params: {},
       data: { clerkUserId: userId },
     });
     const response = await postStats(context);
@@ -185,6 +190,7 @@ describe('Pages Functions with D1', () => {
         body: JSON.stringify({ padding: 'x'.repeat(17_000) }),
         headers: { 'Content-Type': 'application/json' },
       }) as never,
+      params: {},
       data: { clerkUserId: userId },
     });
     const response = await postStats(context);

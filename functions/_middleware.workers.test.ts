@@ -9,6 +9,8 @@ function contextFor(path: string, authorization?: string) {
   if (authorization) headers.set('Authorization', authorization);
   return createPagesEventContext<Middleware>({
     request: new Request(`https://infinitesudoku.com${path}`, { headers }) as never,
+    params: {},
+    data: {},
     next: vi.fn().mockResolvedValue(new Response('next')),
   });
 }

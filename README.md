@@ -1,5 +1,13 @@
 # React + TypeScript + Vite
 
+## Cloudflare binding types
+
+`worker-configuration.d.ts` is generated from `wrangler.toml` and the names in
+local `.dev.vars` files. Run `npm run types:cloudflare` after changing bindings
+or environment-variable names. `npm run types:check` verifies the committed
+file is current, and `npm run typecheck` checks the frontend, Web Worker, and
+Pages Functions projects together.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

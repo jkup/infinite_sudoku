@@ -3,13 +3,6 @@ import { createClerkClient } from '@clerk/backend';
 // Cloudflare Pages Functions middleware.
 // Authenticates Clerk session tokens for /api/* and attaches the verified user ID.
 
-interface Env {
-  CLERK_SECRET: string;
-  CLERK_PUBLIC: string;
-  CLERK_AUTHORIZED_PARTIES?: string;
-  DB: D1Database;
-}
-
 const DEFAULT_AUTHORIZED_PARTIES = [
   'https://infinitesudoku.com',
   'http://localhost:5173',
@@ -25,7 +18,7 @@ function unauthorized(): Response {
   return Response.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
-export const onRequest: PagesFunction<Env>[] = [
+export const onRequest: PagesFunction<Cloudflare.Env>[] = [
   async (context) => {
     const { request, env, data } = context;
     const url = new URL(request.url);
