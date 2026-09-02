@@ -63,6 +63,19 @@ describe('Pages Functions with D1', () => {
     });
   });
 
+  it('applies database constraints from the ordered migration history', async () => {
+    await expect(env.DB.prepare(
+      `INSERT INTO game_results
+       (clerk_user_id, mode, difficulty, solve_time_ms, score, completion_id)
+       VALUES (?, 'invalid', 'easy', 1000, 10, ?)`,
+    ).bind(userId, crypto.randomUUID()).run()).rejects.toThrow('invalid game result');
+
+    const index = await env.DB.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_game_results_daily_ranking'",
+    ).first('name');
+    expect(index).toBe('idx_game_results_daily_ranking');
+  });
+
   it('persists a completion and updates aggregate stats', async () => {
     const result = {
       completionId,
@@ -209,11 +222,11 @@ describe('Pages Functions with D1', () => {
     ).bind('user_one', 'user_two').run();
     await env.DB.prepare(
       `INSERT INTO game_results
-       (clerk_user_id, mode, difficulty, solve_time_ms, score, is_daily, daily_date)
-       VALUES (?, 'classic', 'easy', 60000, 800, 1, '2026-09-02'),
-              (?, 'classic', 'hard', 120000, 1200, 1, '2026-09-02'),
-              (?, 'killer', 'easy', 70000, 5000, 1, '2026-09-02')`,
-    ).bind('user_one', 'user_two', 'user_one').run();
+       (clerk_user_id, mode, difficulty, solve_time_ms, score, is_daily, daily_date, completion_id)
+       VALUES (?, 'classic', 'easy', 60000, 800, 1, '2026-09-02', ?),
+              (?, 'classic', 'hard', 120000, 1200, 1, '2026-09-02', ?),
+              (?, 'killer', 'easy', 70000, 5000, 1, '2026-09-02', ?)`,
+    ).bind('user_one', crypto.randomUUID(), 'user_two', crypto.randomUUID(), 'user_one', crypto.randomUUID()).run();
 
     const response = await getLeaderboard(leaderboardContext());
     const entries = await response.json<Array<{ clerkUserId: string; score: number }>>();

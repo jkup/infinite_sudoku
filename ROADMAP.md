@@ -267,6 +267,7 @@ A task is complete when:
 ### DATA-001: Introduce ordered D1 migrations
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Convert the single schema file into an ordered, append-only migration history suitable for local, preview, and production databases.
