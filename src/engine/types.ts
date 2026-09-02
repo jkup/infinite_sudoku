@@ -37,6 +37,7 @@ export type Puzzle = {
   mode: GameMode;
   gridSize: number;            // 6 or 9
   cages?: Cage[];              // Only for killer mode
+  completionId?: string;       // Stable identity for idempotent top-level completion
 };
 
 /** A snapshot of one cell's before/after state within a single undoable action. */

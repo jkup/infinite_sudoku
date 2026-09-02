@@ -18,7 +18,6 @@ import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame } from '../lib/persistence';
 import { postGameResult } from '../lib/api';
 import { useHintStore } from './hintStore';
-import { calculateScore } from '../lib/scoring';
 
 function vibrate(ms: number | number[] = 10) {
   try { navigator.vibrate?.(ms); } catch { /* unsupported */ }
@@ -204,28 +203,21 @@ function checkCompletion(grid: Grid): boolean {
 
 /** Fire-and-forget cloud save when a game completes */
 function saveToCloud(state: {
+  completionId: string;
   mode: GameMode;
   difficulty: Difficulty;
   elapsedMs: number;
   hintsUsed: number;
   errorsMade: number;
 }): void {
-  const score = calculateScore({
-    difficulty: state.difficulty,
-    mode: state.mode,
-    solveTimeMs: state.elapsedMs,
-    hintsUsed: state.hintsUsed,
-    errorsMade: state.errorsMade,
-  });
-
   postGameResult({
+    completionId: state.completionId,
     mode: state.mode,
     difficulty: state.difficulty,
     solveTimeMs: state.elapsedMs,
     hintsUsed: state.hintsUsed,
     maxHintDepth: 0,
     errorsMade: state.errorsMade,
-    score,
   }).catch(() => {
     // Cloud save is best-effort — fail silently
   });
@@ -265,7 +257,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       set({
         grid,
-        puzzle,
+        puzzle: { ...puzzle, completionId: crypto.randomUUID() },
         mode,
         difficulty,
         status: 'playing',
@@ -385,12 +377,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (isComplete) {
       vibrate([50, 50, 50, 50, 100]);
-      const { timerInterval, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em } = get();
+      const { timerInterval, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em, puzzle } = get();
       if (timerInterval) clearInterval(timerInterval);
       // Only save to cloud for top-level puzzles, not hint puzzles
       const isInHintStack = useHintStore.getState().stack.length > 0;
       if (!isInHintStack) {
-        saveToCloud({ mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
+        saveToCloud({ completionId: puzzle?.completionId ?? crypto.randomUUID(), mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
       }
     }
   },
@@ -690,10 +682,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     if (isComplete) {
-      const { mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em } = get();
+      const { mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em, puzzle } = get();
       const isInHintStack = useHintStore.getState().stack.length > 0;
       if (!isInHintStack) {
-        saveToCloud({ mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
+        saveToCloud({ completionId: puzzle?.completionId ?? crypto.randomUUID(), mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
       }
     }
   },

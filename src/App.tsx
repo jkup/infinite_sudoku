@@ -278,6 +278,7 @@ function GameScreen() {
   const difficulty = useGameStore((s) => s.difficulty);
   const mode = useGameStore((s) => s.mode);
   const historyIndex = useGameStore((s) => s.historyIndex);
+  const grid = useGameStore((s) => s.grid);
 
   const hintStack = useHintStore((s) => s.stack);
   const completeHintPuzzle = useHintStore((s) => s.completeHintPuzzle);
@@ -296,38 +297,23 @@ function GameScreen() {
 
   const [pendingGame, setPendingGame] = useState<{ difficulty: Difficulty; mode: GameMode } | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
-  const [boardAnim, setBoardAnim] = useState<string | null>(null);
-  const [tutorialFocusDone, setTutorialFocusDone] = useState(false);
 
-  // Detect when tutorial focus cells are all correctly filled
-  useEffect(() => {
-    if (!isInTutorialPractice || !activeTutorial) {
-      setTutorialFocusDone(false);
-      return;
-    }
-    const check = () => {
-      const { grid } = useGameStore.getState();
-      if (grid.length === 0) return;
-      const done = activeTutorial.focusCells.every(({ row, col }) => {
-        const cell = grid[row]?.[col];
-        const solution = activeTutorial.practicePuzzle.solution[row]?.[col];
-        return cell?.digit === solution;
-      });
-      if (done) setTutorialFocusDone(true);
-    };
-    check();
-    return useGameStore.subscribe(check);
-  }, [isInTutorialPractice, activeTutorial]);
+  const tutorialFocusDone = !!(
+    isInTutorialPractice &&
+    activeTutorial &&
+    grid.length > 0 &&
+    activeTutorial.focusCells.every(({ row, col }) =>
+      grid[row]?.[col]?.digit === activeTutorial.practicePuzzle.solution[row]?.[col]
+    )
+  );
+  const boardAnim = hintTransition
+    ? hintTransition === 'deeper' ? 'board-slide-left' : 'board-slide-right'
+    : null;
 
   // Trigger board slide animation on hint transitions
   useEffect(() => {
     if (!hintTransition) return;
-    const cls = hintTransition === 'deeper' ? 'board-slide-left' : 'board-slide-right';
-    setBoardAnim(cls);
-    const timer = setTimeout(() => {
-      setBoardAnim(null);
-      clearTransition();
-    }, 300);
+    const timer = setTimeout(clearTransition, 300);
     return () => clearTimeout(timer);
   }, [hintTransition, clearTransition]);
 
@@ -338,7 +324,7 @@ function GameScreen() {
     return () => clearTimeout(timer);
   }, [hintRevealCell, clearHintReveal]);
 
-  useKeyboard(useCallback(() => setShowKeyboardHelp((v) => !v), []));
+  useKeyboard(useCallback(() => setShowKeyboardHelp((v) => !v), [setShowKeyboardHelp]));
 
   // Auto-pause when tab/app is hidden, auto-resume when visible
   useEffect(() => {
@@ -373,7 +359,7 @@ function GameScreen() {
     } else {
       newGame(d, m);
     }
-  }, [historyIndex, status, newGame, isInHintStack]);
+  }, [historyIndex, status, newGame, isInHintStack, setPendingGame]);
 
   const confirmNewGame = useCallback(() => {
     if (pendingGame) {
@@ -382,7 +368,7 @@ function GameScreen() {
       newGame(pendingGame.difficulty, pendingGame.mode);
       setPendingGame(null);
     }
-  }, [pendingGame, newGame]);
+  }, [pendingGame, newGame, setPendingGame]);
 
   if (!puzzle) return null;
 

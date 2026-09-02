@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const STORAGE_KEY = 'infinite-sudoku-onboarded';
 
@@ -27,17 +27,13 @@ const STEPS = [
 
 export default function Onboarding() {
   const [step, setStep] = useState(0);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
+  const [visible, setVisible] = useState(() => {
     try {
-      if (!localStorage.getItem(STORAGE_KEY)) {
-        setVisible(true);
-      }
+      return !localStorage.getItem(STORAGE_KEY);
     } catch {
-      // localStorage unavailable
+      return false;
     }
-  }, []);
+  });
 
   if (!visible) return null;
 

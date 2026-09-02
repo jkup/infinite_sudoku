@@ -165,7 +165,11 @@ export function loadGame(): {
     if (!data.grid || !data.puzzle || !data.puzzle.solution) return null;
     if (data.grid.length !== 9 && data.grid.length !== 6) return null;
 
-    const puzzle = { ...data.puzzle, gridSize: data.puzzle.gridSize ?? 9 };
+    const puzzle = {
+      ...data.puzzle,
+      gridSize: data.puzzle.gridSize ?? 9,
+      completionId: data.puzzle.completionId ?? crypto.randomUUID(),
+    };
 
     return {
       grid: deserializeGrid(data.grid),

@@ -1,13 +1,13 @@
 import type { Difficulty, GameMode } from '../engine/types';
 
 type GameResultPayload = {
+  completionId: string;
   mode: GameMode;
   difficulty: Difficulty;
   solveTimeMs: number;
   hintsUsed: number;
   maxHintDepth: number;
   errorsMade: number;
-  score: number;
 };
 
 export type UserStats = {
@@ -55,7 +55,7 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
   return fetch(url, { ...options, headers });
 }
 
-export async function postGameResult(data: GameResultPayload): Promise<void> {
+export async function postGameResult(data: GameResultPayload): Promise<{ score: number } | null> {
   const res = await authFetch('/api/stats', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -63,7 +63,10 @@ export async function postGameResult(data: GameResultPayload): Promise<void> {
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     console.error(`[stats] POST /api/stats failed (${res.status}):`, body);
+    return null;
   }
+  const result = await res.json() as { score: number };
+  return { score: result.score };
 }
 
 export async function getStats(): Promise<UserStats | null> {

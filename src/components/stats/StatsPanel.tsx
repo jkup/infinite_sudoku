@@ -6,11 +6,10 @@ import type { UserStats } from '../../lib/api';
 export default function StatsPanel() {
   const { isSignedIn, isLoaded } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
-    setLoading(true);
     getStats()
       .then(setStats)
       .catch(() => setStats(null))

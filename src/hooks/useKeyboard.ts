@@ -115,5 +115,5 @@ export function useKeyboard(onToggleHelp?: () => void) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [onToggleHelp]);
 }

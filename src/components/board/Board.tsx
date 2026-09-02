@@ -33,8 +33,6 @@ export default function Board() {
     return set;
   }, [isInTutorialPractice, activeTutorialId]);
 
-  if (grid.length === 0) return null;
-
   const gridSize = grid.length;
   const isKiller = puzzle?.mode === 'killer' && puzzle.cages;
 
@@ -51,7 +49,9 @@ export default function Board() {
       }
     }
     return labels;
-  }, [isKiller, puzzle?.cages, gridSize]);
+  }, [isKiller, puzzle, gridSize]);
+
+  if (grid.length === 0) return null;
 
   const selectedDigit = selectedCell
     ? grid[selectedCell.row][selectedCell.col].digit
