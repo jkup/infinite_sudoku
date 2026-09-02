@@ -30,6 +30,9 @@ type GameState = {
   mode: GameMode;
   difficulty: Difficulty;
   status: GameStatus;
+  generationStatus: 'idle' | 'loading' | 'error';
+  generationError: string | null;
+  pendingGameSettings: { difficulty: Difficulty; mode: GameMode } | null;
 
   // Selection
   selectedCell: CellPosition | null;
@@ -83,6 +86,8 @@ function cloneGrid(grid: Grid): Grid {
     }))
   );
 }
+
+let latestGameRequestId = 0;
 
 /**
  * When a digit is removed from a cell, restore that digit to corner notes
@@ -231,6 +236,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   mode: 'classic',
   difficulty: 'easy',
   status: 'playing',
+  generationStatus: 'idle',
+  generationError: null,
+  pendingGameSettings: null,
   selectedCell: null,
   inputMode: 'digit',
   history: [],
@@ -244,11 +252,18 @@ export const useGameStore = create<GameState>((set, get) => ({
   submittedCompletionId: null,
 
   newGame: (difficulty, mode = 'classic') => {
+    const requestId = ++latestGameRequestId;
     const { timerInterval } = get();
     if (timerInterval) clearInterval(timerInterval);
+    set({
+      timerInterval: null,
+      generationStatus: 'loading',
+      generationError: null,
+      pendingGameSettings: { difficulty, mode },
+    });
 
-    // Try async (Web Worker) generation, fall back to sync
     generatePuzzleAsync(difficulty, mode).then((puzzle) => {
+      if (requestId !== latestGameRequestId) return;
       const grid = gridFromValues(puzzle.initial, true);
 
       const interval = setInterval(() => {
@@ -264,6 +279,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         mode,
         difficulty,
         status: 'playing',
+        generationStatus: 'idle',
+        generationError: null,
+        pendingGameSettings: null,
         selectedCell: null,
         inputMode: 'digit',
         history: [],
@@ -275,6 +293,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         hintsUsed: 0,
         errorsMade: 0,
         submittedCompletionId: null,
+      });
+    }).catch((error: unknown) => {
+      if (requestId !== latestGameRequestId) return;
+      set({
+        generationStatus: 'error',
+        generationError: error instanceof Error ? error.message : 'Puzzle generation failed',
       });
     });
   },
@@ -640,6 +664,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       mode: saved.mode,
       difficulty: saved.difficulty,
       status: saved.status,
+      generationStatus: 'idle',
+      generationError: null,
+      pendingGameSettings: null,
       inputMode: saved.inputMode,
       history: saved.history,
       historyIndex: saved.historyIndex,

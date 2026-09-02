@@ -279,6 +279,9 @@ function GameScreen() {
   const mode = useGameStore((s) => s.mode);
   const historyIndex = useGameStore((s) => s.historyIndex);
   const grid = useGameStore((s) => s.grid);
+  const generationStatus = useGameStore((s) => s.generationStatus);
+  const generationError = useGameStore((s) => s.generationError);
+  const pendingGameSettings = useGameStore((s) => s.pendingGameSettings);
 
   const hintStack = useHintStore((s) => s.stack);
   const completeHintPuzzle = useHintStore((s) => s.completeHintPuzzle);
@@ -370,7 +373,27 @@ function GameScreen() {
     }
   }, [pendingGame, newGame, setPendingGame]);
 
-  if (!puzzle) return null;
+  if (!puzzle) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
+        <div className="text-center" role="status" aria-live="polite">
+          {generationStatus === 'error' ? (
+            <>
+              <h1 className="text-xl font-bold mb-2">Couldn&apos;t create a puzzle</h1>
+              <p className="mb-4" style={{ color: 'var(--color-text-muted)' }}>{generationError}</p>
+              <button
+                className="px-5 py-2.5 rounded-xl font-semibold"
+                style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
+                onClick={() => newGame(pendingGameSettings?.difficulty ?? 'easy', pendingGameSettings?.mode ?? 'classic')}
+              >
+                Try Again
+              </button>
+            </>
+          ) : <p className="font-semibold">Generating your puzzle…</p>}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main
@@ -426,6 +449,28 @@ function GameScreen() {
 
       {/* Digit input */}
       <DigitBar />
+
+      {generationStatus !== 'idle' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="status" aria-live="polite">
+          <div className="rounded-2xl p-6 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
+            {generationStatus === 'loading' ? (
+              <p className="font-semibold">Generating your puzzle…</p>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold mb-2">Couldn&apos;t create a puzzle</h2>
+                <p className="mb-4" style={{ color: 'var(--color-text-muted)' }}>{generationError}</p>
+                <button
+                  className="px-5 py-2.5 rounded-xl font-semibold"
+                  style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
+                  onClick={() => pendingGameSettings && newGame(pendingGameSettings.difficulty, pendingGameSettings.mode)}
+                >
+                  Try Again
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Confirm new game modal */}
       {pendingGame && (

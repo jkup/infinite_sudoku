@@ -129,6 +129,7 @@ A task is complete when:
 ### GAME-002: Make puzzle generation race-safe and cancellable
 
 **Priority:** P0
+**Status:** Complete (2026-09-03)
 **Why:** Multiple requests share one Worker without request IDs. All listeners can resolve from the first response, and an older generation can overwrite a newer selection.
 
 **Scope**

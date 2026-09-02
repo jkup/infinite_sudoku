@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Digit, Puzzle } from '../engine/types';
 import { gridFromValues } from '../engine/types';
 
+const { mockGeneratePuzzleAsync } = vi.hoisted(() => ({ mockGeneratePuzzleAsync: vi.fn() }));
+vi.mock('../engine/generateAsync', () => ({
+  generatePuzzleAsync: mockGeneratePuzzleAsync,
+  generateMiniPuzzleAsync: vi.fn(),
+}));
 vi.mock('../lib/api', () => ({ postGameResult: vi.fn().mockResolvedValue(undefined) }));
 
 import { useGameStore } from './gameStore';
@@ -35,6 +40,9 @@ function resetGame(puzzle = makePuzzle()) {
     mode: puzzle.mode,
     difficulty: puzzle.difficulty,
     status: 'playing',
+    generationStatus: 'idle',
+    generationError: null,
+    pendingGameSettings: null,
     selectedCell: null,
     inputMode: 'digit',
     history: [],
@@ -52,6 +60,7 @@ function resetGame(puzzle = makePuzzle()) {
 describe('game store transitions', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    mockGeneratePuzzleAsync.mockReset();
     localStorage.clear();
     resetGame();
   });
@@ -138,5 +147,34 @@ describe('game store transitions', () => {
     useGameStore.getState().autoNote();
     expect(useGameStore.getState().grid[0][0].cornerNotes.size).toBe(0);
     expect(useGameStore.getState().history).toHaveLength(2);
+  });
+
+  it('keeps the latest game when generation replies out of order', async () => {
+    let resolveFirst!: (puzzle: Puzzle) => void;
+    let resolveSecond!: (puzzle: Puzzle) => void;
+    mockGeneratePuzzleAsync
+      .mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockReturnValueOnce(new Promise((resolve) => { resolveSecond = resolve; }));
+
+    useGameStore.getState().newGame('easy', 'classic');
+    useGameStore.getState().newGame('hard', 'killer');
+    expect(useGameStore.getState().generationStatus).toBe('loading');
+
+    resolveSecond({ ...makePuzzle(), difficulty: 'hard', mode: 'killer' });
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('idle'));
+    resolveFirst(makePuzzle());
+    await Promise.resolve();
+
+    expect(useGameStore.getState().difficulty).toBe('hard');
+    expect(useGameStore.getState().mode).toBe('killer');
+  });
+
+  it('surfaces the latest generation failure with retry settings', async () => {
+    mockGeneratePuzzleAsync.mockRejectedValueOnce(new Error('worker unavailable'));
+    useGameStore.getState().newGame('expert', 'killer');
+
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
+    expect(useGameStore.getState().generationError).toBe('worker unavailable');
+    expect(useGameStore.getState().pendingGameSettings).toEqual({ difficulty: 'expert', mode: 'killer' });
   });
 });
