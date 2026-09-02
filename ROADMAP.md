@@ -106,6 +106,7 @@ A task is complete when:
 ### GAME-001: Fix easy-hint completion behavior
 
 **Priority:** P0
+**Status:** Complete (2026-09-03)
 **Why:** Revealing the final cell with a free easy hint can leave a solved puzzle in the `playing` state.
 
 **Scope**

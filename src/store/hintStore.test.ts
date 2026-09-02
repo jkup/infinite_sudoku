@@ -28,23 +28,30 @@ vi.mock('../lib/api', () => ({ postGameResult: vi.fn().mockResolvedValue(undefin
 
 import { useGameStore } from './gameStore';
 import { useHintStore } from './hintStore';
+import { postGameResult } from '../lib/api';
 
 const solution = Array.from({ length: 9 }, (_, row) =>
   Array.from({ length: 9 }, (_, col) => ((row * 3 + Math.floor(row / 3) + col) % 9 + 1) as Digit),
 );
 
-function parentPuzzle(difficulty: Puzzle['difficulty']): Puzzle {
+function parentPuzzle(
+  difficulty: Puzzle['difficulty'],
+  blanks: Array<[number, number]> = [[0, 0]],
+): Puzzle {
   return {
-    initial: solution.map((row, r) => row.map((digit, c) => r === 0 && c === 0 ? null : digit)),
+    initial: solution.map((row, r) => row.map((digit, c) =>
+      blanks.some(([blankRow, blankCol]) => blankRow === r && blankCol === c) ? null : digit,
+    )),
     solution,
     difficulty,
     mode: 'classic',
     gridSize: 9,
+    completionId: 'c0ffee00-0000-4000-8000-000000000002',
   };
 }
 
-function reset(difficulty: Puzzle['difficulty']) {
-  const puzzle = parentPuzzle(difficulty);
+function reset(difficulty: Puzzle['difficulty'], blanks?: Array<[number, number]>) {
+  const puzzle = parentPuzzle(difficulty, blanks);
   const interval = useGameStore.getState().timerInterval;
   if (interval) clearInterval(interval);
   useHintStore.setState({ stack: [], transition: null, hintRevealCell: null });
@@ -53,12 +60,14 @@ function reset(difficulty: Puzzle['difficulty']) {
     status: 'playing', selectedCell: { row: 0, col: 0 }, inputMode: 'digit',
     history: [], historyIndex: -1, elapsedMs: 42_000, timerInterval: null,
     pausedByUser: false, conflicts: new Map(), hintsUsed: 0, errorsMade: 0,
+    submittedCompletionId: null,
   });
 }
 
 describe('hint stack transitions', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.clearAllMocks();
     localStorage.clear();
   });
 
@@ -69,12 +78,39 @@ describe('hint stack transitions', () => {
     vi.useRealTimers();
   });
 
-  it('reveals an easy hint immediately and increments usage', () => {
+  it('reveals a final easy hint, completes once, and supports undo/redo', () => {
     reset('easy');
     useHintStore.getState().requestHint();
-    expect(useGameStore.getState().grid[0][0].digit).toBe(solution[0][0]);
-    expect(useGameStore.getState().hintsUsed).toBe(1);
+    const completed = useGameStore.getState();
+    expect(completed.grid[0][0].digit).toBe(solution[0][0]);
+    expect(completed.hintsUsed).toBe(1);
+    expect(completed.status).toBe('completed');
+    expect(completed.history).toHaveLength(1);
+    expect(postGameResult).toHaveBeenCalledOnce();
     expect(useHintStore.getState().stack).toHaveLength(0);
+
+    completed.undo();
+    expect(useGameStore.getState().grid[0][0].digit).toBeNull();
+    expect(useGameStore.getState().status).toBe('playing');
+    useGameStore.getState().redo();
+    expect(useGameStore.getState().status).toBe('completed');
+    expect(postGameResult).toHaveBeenCalledOnce();
+  });
+
+  it('records a non-final easy hint and removes its digit from peer notes', () => {
+    reset('easy', [[0, 0], [0, 1]]);
+    const grid = useGameStore.getState().grid;
+    grid[0][1].cornerNotes.add(solution[0][0]);
+
+    useHintStore.getState().requestHint();
+    const hinted = useGameStore.getState();
+    expect(hinted.status).toBe('playing');
+    expect(hinted.grid[0][1].cornerNotes.has(solution[0][0])).toBe(false);
+    expect(hinted.history[0].changes).toHaveLength(2);
+    expect(postGameResult).not.toHaveBeenCalled();
+
+    hinted.undo();
+    expect(useGameStore.getState().grid[0][1].cornerNotes.has(solution[0][0])).toBe(true);
   });
 
   it('opens an easier mini puzzle and can abandon back to an exact parent snapshot', async () => {
@@ -104,5 +140,19 @@ describe('hint stack transitions', () => {
     expect(game.history).toHaveLength(1);
     expect(game.status).toBe('completed');
     expect(useHintStore.getState().hintRevealCell).toEqual({ row: 0, col: 0 });
+    expect(postGameResult).toHaveBeenCalledOnce();
+  });
+
+  it('does not submit when completing a nested hint puzzle', async () => {
+    reset('hard');
+    useHintStore.getState().requestHint();
+    await vi.waitFor(() => expect(useGameStore.getState().grid).toHaveLength(6));
+    useGameStore.setState({ selectedCell: { row: 0, col: 0 } });
+    useHintStore.getState().requestHint();
+    await vi.waitFor(() => expect(useHintStore.getState().stack).toHaveLength(2));
+
+    useHintStore.getState().completeHintPuzzle();
+    expect(useHintStore.getState().stack).toHaveLength(1);
+    expect(postGameResult).not.toHaveBeenCalled();
   });
 });

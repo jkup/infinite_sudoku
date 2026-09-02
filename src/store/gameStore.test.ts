@@ -45,6 +45,7 @@ function resetGame(puzzle = makePuzzle()) {
     conflicts: new Map(),
     hintsUsed: 0,
     errorsMade: 0,
+    submittedCompletionId: null,
   });
 }
 

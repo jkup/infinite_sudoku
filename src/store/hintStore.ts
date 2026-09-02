@@ -97,16 +97,7 @@ export const useHintStore = create<HintState>((set, get) => ({
 
     // At easy, hints are free — just reveal the answer
     if (currentDiffIndex <= 0) {
-      const newGrid = cloneGrid(game.grid);
-      newGrid[row][col].digit = hintDigit;
-      newGrid[row][col].cornerNotes.clear();
-      newGrid[row][col].centerNotes.clear();
-
-      useGameStore.setState({
-        grid: newGrid,
-        conflicts: findConflicts(newGrid),
-        hintsUsed: game.hintsUsed + 1,
-      });
+      game.revealHint({ row, col }, hintDigit);
       return;
     }
 
@@ -176,35 +167,11 @@ export const useHintStore = create<HintState>((set, get) => ({
     const parent = stack[stack.length - 1];
     const newStack = stack.slice(0, -1);
 
-    // Reveal the hinted cell in the parent grid
-    const restoredGrid = cloneGrid(parent.grid);
-    const { row, col } = parent.hintCell;
-    const target = restoredGrid[row][col];
-
-    // Build a history entry for the hint reveal so undo works
-    const hintChange: HistoryEntry = {
-      changes: [{
-        position: { row, col },
-        previousDigit: target.digit,
-        newDigit: parent.hintDigit,
-        previousCornerNotes: new Set(target.cornerNotes),
-        newCornerNotes: new Set<Digit>(),
-        previousCenterNotes: new Set(target.centerNotes),
-        newCenterNotes: new Set<Digit>(),
-      }],
-    };
-
-    target.digit = parent.hintDigit;
-    target.cornerNotes.clear();
-    target.centerNotes.clear();
-
-    // Append the hint reveal to the parent's history
-    const restoredHistory = cloneHistory(parent.history).slice(0, parent.historyIndex + 1);
-    restoredHistory.push(hintChange);
-
     set({ stack: newStack, transition: 'back', hintRevealCell: parent.hintCell });
 
-    // Restore parent game state with the hint applied
+    // Restore the parent, then route the earned reveal through the same domain
+    // transition as a normal placement so notes, history, completion, and sync
+    // behavior cannot drift apart.
     const prevInterval = useGameStore.getState().timerInterval;
     if (prevInterval) clearInterval(prevInterval);
     const interval = setInterval(() => {
@@ -214,27 +181,23 @@ export const useHintStore = create<HintState>((set, get) => ({
       }
     }, 1000);
 
-    // Check if revealing the hint completes the parent puzzle
-    const allFilled = restoredGrid.every((row) => row.every((c) => c.digit !== null));
-    const conflicts = findConflicts(restoredGrid);
-    const isComplete = allFilled && conflicts.size === 0;
-
     useGameStore.setState({
-      grid: restoredGrid,
+      grid: cloneGrid(parent.grid),
       puzzle: parent.puzzle,
       mode: parent.mode,
       difficulty: parent.difficulty,
-      status: isComplete ? 'completed' : 'playing',
+      status: parent.status,
       inputMode: parent.inputMode,
-      history: restoredHistory,
-      historyIndex: restoredHistory.length - 1,
+      history: cloneHistory(parent.history),
+      historyIndex: parent.historyIndex,
       elapsedMs: parent.elapsedMs,
       hintsUsed: parent.hintsUsed,
       errorsMade: parent.errorsMade,
       timerInterval: interval,
       selectedCell: parent.hintCell,
-      conflicts,
+      conflicts: findConflicts(parent.grid),
     });
+    useGameStore.getState().revealHint(parent.hintCell, parent.hintDigit, false);
   },
 
   abandonHintPuzzle: () => {

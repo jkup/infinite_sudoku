@@ -50,11 +50,13 @@ type GameState = {
   // Stats tracking
   hintsUsed: number;
   errorsMade: number;
+  submittedCompletionId: string | null;
 
   // Actions
   newGame: (difficulty: Difficulty, mode?: GameMode) => void;
   selectCell: (pos: CellPosition | null) => void;
   placeDigit: (digit: Digit) => void;
+  revealHint: (pos: CellPosition, digit: Digit, incrementUsage?: boolean) => void;
   eraseCell: () => void;
   toggleNote: (digit: Digit) => void;
   setInputMode: (mode: InputMode) => void;
@@ -239,6 +241,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   conflicts: new Map(),
   hintsUsed: 0,
   errorsMade: 0,
+  submittedCompletionId: null,
 
   newGame: (difficulty, mode = 'classic') => {
     const { timerInterval } = get();
@@ -271,6 +274,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         conflicts: new Map(),
         hintsUsed: 0,
         errorsMade: 0,
+        submittedCompletionId: null,
       });
     });
   },
@@ -377,14 +381,31 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (isComplete) {
       vibrate([50, 50, 50, 50, 100]);
-      const { timerInterval, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em, puzzle } = get();
+      const { timerInterval, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em, puzzle, submittedCompletionId } = get();
       if (timerInterval) clearInterval(timerInterval);
       // Only save to cloud for top-level puzzles, not hint puzzles
       const isInHintStack = useHintStore.getState().stack.length > 0;
-      if (!isInHintStack) {
-        saveToCloud({ completionId: puzzle?.completionId ?? crypto.randomUUID(), mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
+      const completionId = puzzle?.completionId ?? crypto.randomUUID();
+      if (!isInHintStack && submittedCompletionId !== completionId) {
+        set({ submittedCompletionId: completionId });
+        saveToCloud({ completionId, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
       }
     }
+  },
+
+  revealHint: (pos, digit, incrementUsage = true) => {
+    const state = get();
+    if (state.status !== 'playing') return;
+
+    const cell = state.grid[pos.row]?.[pos.col];
+    if (!cell || cell.isGiven || cell.digit !== null) return;
+
+    set({
+      selectedCell: pos,
+      inputMode: 'digit',
+      hintsUsed: incrementUsage ? state.hintsUsed + 1 : state.hintsUsed,
+    });
+    get().placeDigit(digit);
   },
 
   eraseCell: () => {
@@ -629,6 +650,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       conflicts: updateConflicts(saved.grid),
       hintsUsed: 0,
       errorsMade: 0,
+      submittedCompletionId: saved.status === 'completed' ? saved.puzzle.completionId ?? null : null,
     });
     return true;
   },
@@ -682,10 +704,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     if (isComplete) {
-      const { mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em, puzzle } = get();
+      const { mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em, puzzle, submittedCompletionId } = get();
       const isInHintStack = useHintStore.getState().stack.length > 0;
-      if (!isInHintStack) {
-        saveToCloud({ completionId: puzzle?.completionId ?? crypto.randomUUID(), mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
+      const completionId = puzzle?.completionId ?? crypto.randomUUID();
+      if (!isInHintStack && submittedCompletionId !== completionId) {
+        set({ submittedCompletionId: completionId });
+        saveToCloud({ completionId, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
       }
     }
   },
