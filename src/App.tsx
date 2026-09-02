@@ -214,7 +214,7 @@ function SignInPage() {
   // Redirect to home once signed in
   useEffect(() => {
     if (isSignedIn) {
-      navigate('/', { replace: true });
+      void navigate('/', { replace: true });
     }
   }, [isSignedIn, navigate]);
 
@@ -246,7 +246,7 @@ function SignUpPage() {
 
   useEffect(() => {
     if (isSignedIn) {
-      navigate('/', { replace: true });
+      void navigate('/', { replace: true });
     }
   }, [isSignedIn, navigate]);
 

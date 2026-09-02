@@ -206,6 +206,7 @@ A task is complete when:
 ### QUAL-001: Make lint pass and strengthen static analysis
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Fix the conditional hook call in `src/components/board/Board.tsx`.

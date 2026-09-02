@@ -69,7 +69,7 @@ describe('asynchronous puzzle generation', () => {
     await expect(second).rejects.toThrow('Puzzle worker failed');
     expect(failedWorker.terminated).toBe(true);
 
-    generatePuzzleAsync('medium', 'classic');
+    void generatePuzzleAsync('medium', 'classic');
     expect(FakeWorker.instances).toHaveLength(2);
   });
 

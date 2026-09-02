@@ -128,7 +128,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     // Push onto stack immediately
     set({ stack: [...get().stack, snapshot], transition: 'deeper' });
 
-    generateMiniPuzzleAsync(easierDifficulty).then((hintPuzzle) => {
+    void generateMiniPuzzleAsync(easierDifficulty).then((hintPuzzle) => {
       const hintGrid = gridFromValues(hintPuzzle.initial, true);
 
       // Clear the timer interval and start a fresh one for the hint puzzle
@@ -156,6 +156,9 @@ export const useHintStore = create<HintState>((set, get) => ({
         timerInterval: interval,
         conflicts: new Map(),
       });
+    }).catch(() => {
+      set({ stack: get().stack.filter((entry) => entry !== snapshot), transition: null });
+      useGameStore.setState({ hintsUsed: game.hintsUsed });
     });
   },
 
