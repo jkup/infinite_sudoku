@@ -190,6 +190,7 @@ A task is complete when:
 
 **Priority:** P1
 **Depends on:** SEC-001, TEST-001
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Use the current Cloudflare-supported Vitest runtime/plugin for Pages/Workers code.
@@ -245,6 +246,7 @@ A task is complete when:
 
 **Priority:** P1
 **Depends on:** TEST-001, QUAL-001, QUAL-002
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Add a GitHub Actions workflow for a clean install, lint, frontend/backend type checking, tests, and production build.
