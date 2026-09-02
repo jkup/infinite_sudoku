@@ -6,7 +6,7 @@ const MODES = new Set<GameMode>(['classic', 'killer']);
 const DIFFICULTIES = new Set<Difficulty>(['easy', 'medium', 'hard', 'expert']);
 const FIELDS = new Set([
   'mode', 'difficulty', 'solveTimeMs', 'hintsUsed', 'maxHintDepth', 'errorsMade',
-  'completionId',
+  'completionId', 'dailyPuzzleId',
 ]);
 
 export type ValidGameResult = {
@@ -17,6 +17,7 @@ export type ValidGameResult = {
   maxHintDepth: number;
   errorsMade: number;
   completionId: string;
+  dailyPuzzleId?: number;
   score: number;
 };
 
@@ -89,6 +90,9 @@ export async function parseGameResult(request: Request): Promise<ValidGameResult
   if (typeof body.completionId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.completionId)) {
     throw new RequestValidationError('Invalid completionId');
   }
+  if (body.dailyPuzzleId !== undefined && !integerInRange(body.dailyPuzzleId, 1, Number.MAX_SAFE_INTEGER)) {
+    throw new RequestValidationError('Invalid dailyPuzzleId');
+  }
 
   const result = {
     mode: body.mode as GameMode,
@@ -98,6 +102,7 @@ export async function parseGameResult(request: Request): Promise<ValidGameResult
     maxHintDepth: body.maxHintDepth,
     errorsMade: body.errorsMade,
     completionId: body.completionId,
+    ...(body.dailyPuzzleId === undefined ? {} : { dailyPuzzleId: body.dailyPuzzleId }),
   };
   return { ...result, score: calculateScore(result) };
 }

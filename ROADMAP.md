@@ -286,6 +286,7 @@ A task is complete when:
 
 **Priority:** P1
 **Depends on:** API-001, API-002, DATA-001
+**Status:** Complete (2026-09-03)
 **Why:** Every completed game currently advances a field named `current_daily_streak`, while result submissions cannot identify a daily puzzle.
 
 **Scope**

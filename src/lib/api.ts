@@ -8,6 +8,7 @@ type GameResultPayload = {
   hintsUsed: number;
   maxHintDepth: number;
   errorsMade: number;
+  dailyPuzzleId?: number;
 };
 
 export type UserStats = {

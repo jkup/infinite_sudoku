@@ -50,20 +50,17 @@ export const onRequestPost: PagesFunction<Cloudflare.Env, string, RequestData> =
   }
 
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const existing = await DB.prepare(
-      'SELECT current_daily_streak, longest_daily_streak, updated_at FROM user_stats WHERE clerk_user_id = ?'
-    ).bind(userId).first<{ current_daily_streak: number; longest_daily_streak: number; updated_at: string }>();
-
-    let newStreak = 1;
-    let newLongest = 1;
-    if (existing) {
-      const lastDate = existing.updated_at.slice(0, 10);
-      if (lastDate === today) newStreak = Math.max(1, existing.current_daily_streak);
-      else if (lastDate === yesterday) newStreak = existing.current_daily_streak + 1;
-      newLongest = Math.max(existing.longest_daily_streak, newStreak);
+    let daily: { id: number; date: string; mode: string; difficulty: string } | null = null;
+    if (body.dailyPuzzleId !== undefined) {
+      daily = await DB.prepare(
+        'SELECT id, date, mode, difficulty FROM daily_puzzles WHERE id = ?',
+      ).bind(body.dailyPuzzleId).first<{ id: number; date: string; mode: string; difficulty: string }>();
+      if (!daily || daily.mode !== body.mode || daily.difficulty !== body.difficulty) {
+        return Response.json({ error: 'Invalid daily puzzle' }, { status: 400 });
+      }
     }
+
+    const dailyDate = daily?.date ?? null;
 
     await DB.batch([
       DB.prepare(
@@ -74,24 +71,51 @@ export const onRequestPost: PagesFunction<Cloudflare.Env, string, RequestData> =
       ).bind(userId),
       DB.prepare(
         `INSERT INTO game_results
-         (clerk_user_id, mode, difficulty, solve_time_ms, hints_used, max_hint_depth, errors_made, score, completion_id, stats_counted)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-         ON CONFLICT(clerk_user_id, completion_id) DO NOTHING`,
-      ).bind(userId, body.mode, body.difficulty, body.solveTimeMs, body.hintsUsed, body.maxHintDepth, body.errorsMade, body.score, body.completionId),
+         (clerk_user_id, mode, difficulty, solve_time_ms, hints_used, max_hint_depth,
+          errors_made, score, completion_id, stats_counted, is_daily, daily_date, daily_puzzle_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+         ON CONFLICT DO NOTHING`,
+      ).bind(
+        userId, body.mode, body.difficulty, body.solveTimeMs, body.hintsUsed,
+        body.maxHintDepth, body.errorsMade, body.score, body.completionId,
+        daily ? 1 : 0, daily?.date ?? null, daily?.id ?? null,
+      ),
       DB.prepare(
         `UPDATE user_stats SET
            total_games_completed = total_games_completed + 1,
            total_hints_used = total_hints_used + ?,
            total_score = total_score + ?,
-           current_daily_streak = ?,
-           longest_daily_streak = ?,
+           current_daily_streak = CASE
+             WHEN ? IS NULL THEN current_daily_streak
+             WHEN last_daily_date IS NULL THEN 1
+             WHEN ? <= last_daily_date THEN current_daily_streak
+             WHEN last_daily_date = date(?, '-1 day') THEN current_daily_streak + 1
+             ELSE 1
+           END,
+           longest_daily_streak = MAX(longest_daily_streak, CASE
+             WHEN ? IS NULL THEN current_daily_streak
+             WHEN last_daily_date IS NULL THEN 1
+             WHEN ? <= last_daily_date THEN current_daily_streak
+             WHEN last_daily_date = date(?, '-1 day') THEN current_daily_streak + 1
+             ELSE 1
+           END),
+           last_daily_date = CASE
+             WHEN ? IS NOT NULL AND (last_daily_date IS NULL OR ? > last_daily_date) THEN ?
+             ELSE last_daily_date
+           END,
            updated_at = CURRENT_TIMESTAMP
          WHERE clerk_user_id = ?
            AND EXISTS (
              SELECT 1 FROM game_results
              WHERE clerk_user_id = ? AND completion_id = ? AND stats_counted = 0
            )`,
-      ).bind(body.hintsUsed, body.score, newStreak, newLongest, userId, userId, body.completionId),
+      ).bind(
+        body.hintsUsed, body.score,
+        dailyDate, dailyDate, dailyDate,
+        dailyDate, dailyDate, dailyDate,
+        dailyDate, dailyDate, dailyDate,
+        userId, userId, body.completionId,
+      ),
       DB.prepare(
         `UPDATE game_results SET stats_counted = 1
          WHERE clerk_user_id = ? AND completion_id = ? AND stats_counted = 0`,
