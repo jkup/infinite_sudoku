@@ -52,13 +52,12 @@ function parentPuzzle(
 
 function reset(difficulty: Puzzle['difficulty'], blanks?: Array<[number, number]>) {
   const puzzle = parentPuzzle(difficulty, blanks);
-  const interval = useGameStore.getState().timerInterval;
-  if (interval) clearInterval(interval);
   useHintStore.setState({ stack: [], transition: null, hintRevealCell: null });
   useGameStore.setState({
     grid: gridFromValues(puzzle.initial, true), puzzle, mode: 'classic', difficulty,
     status: 'playing', selectedCell: { row: 0, col: 0 }, inputMode: 'digit',
-    history: [], historyIndex: -1, elapsedMs: 42_000, timerInterval: null,
+    history: [], historyIndex: -1, elapsedMs: 42_000,
+    sessionPhase: 'playing', sessionKind: 'game',
     pausedByUser: false, conflicts: new Map(), hintsUsed: 0, errorsMade: 0,
     submittedCompletionId: null,
   });
@@ -72,8 +71,6 @@ describe('hint stack transitions', () => {
   });
 
   afterEach(() => {
-    const interval = useGameStore.getState().timerInterval;
-    if (interval) clearInterval(interval);
     vi.clearAllTimers();
     vi.useRealTimers();
   });
@@ -127,6 +124,24 @@ describe('hint stack transitions', () => {
     expect(useGameStore.getState().elapsedMs).toBe(42_000);
     expect(useGameStore.getState().hintsUsed).toBe(1);
     expect(useGameStore.getState().grid[0][0].digit).toBeNull();
+  });
+
+  it('restores the exact timestamped parent time after nested hint play', async () => {
+    reset('hard');
+    const parent = useGameStore.getState().captureSession()!;
+    useGameStore.getState().replaceSession(parent, 'game', { row: 0, col: 0 });
+    vi.advanceTimersByTime(375);
+
+    useHintStore.getState().requestHint();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(useGameStore.getState().sessionPhase).toBe('nested-hint');
+    expect(useHintStore.getState().stack[0].elapsedMs).toBe(42_375);
+    vi.advanceTimersByTime(3_000);
+
+    useHintStore.getState().abandonHintPuzzle();
+    expect(useGameStore.getState().elapsedMs).toBe(42_375);
+    expect(useGameStore.getState().sessionPhase).toBe('playing');
   });
 
   it('applies an earned hint to the parent with undo history', async () => {

@@ -1,36 +1,17 @@
 import { create } from 'zustand';
 import type {
   Digit,
-  Grid,
   CellPosition,
-  GameMode,
-  Difficulty,
-  GameStatus,
-  InputMode,
-  Puzzle,
-  HistoryEntry,
 } from '../engine/types';
 import { DIFFICULTY_ORDER, gridFromValues } from '../engine/types';
 import { generateMiniPuzzleAsync } from '../engine/generateAsync';
-import { findConflicts } from '../engine/validator';
-import { useGameStore } from './gameStore';
+import { useGameStore, type GameSessionSnapshot } from './gameStore';
 
 /**
  * A snapshot of a game state saved when the player requests a hint.
  * When the hint puzzle is solved (or abandoned), we restore this.
  */
-export type StackEntry = {
-  grid: Grid;
-  puzzle: Puzzle;
-  mode: GameMode;
-  difficulty: Difficulty;
-  status: GameStatus;
-  inputMode: InputMode;
-  history: HistoryEntry[];
-  historyIndex: number;
-  elapsedMs: number;
-  hintsUsed: number;
-  errorsMade: number;
+export type StackEntry = GameSessionSnapshot & {
   hintCell: CellPosition; // The cell in THIS puzzle that needs the hint
   hintDigit: Digit;       // The answer for that cell
 };
@@ -50,28 +31,6 @@ type HintState = {
   clearTransition: () => void;
   clearHintReveal: () => void;
 };
-
-function cloneGrid(grid: Grid): Grid {
-  return grid.map((row) =>
-    row.map((cell) => ({
-      ...cell,
-      cornerNotes: new Set(cell.cornerNotes),
-      centerNotes: new Set(cell.centerNotes),
-    }))
-  );
-}
-
-function cloneHistory(history: HistoryEntry[]): HistoryEntry[] {
-  return history.map((entry) => ({
-    changes: entry.changes.map((c) => ({
-      ...c,
-      previousCornerNotes: new Set(c.previousCornerNotes),
-      newCornerNotes: new Set(c.newCornerNotes),
-      previousCenterNotes: new Set(c.previousCenterNotes),
-      newCenterNotes: new Set(c.newCenterNotes),
-    })),
-  }));
-}
 
 export const useHintStore = create<HintState>((set, get) => ({
   stack: [],
@@ -102,22 +61,13 @@ export const useHintStore = create<HintState>((set, get) => ({
     }
 
     // Increment hint count before snapshotting so it's preserved in the stack
-    const updatedHintsUsed = game.hintsUsed + 1;
-    useGameStore.setState({ hintsUsed: updatedHintsUsed });
+    game.incrementHintsUsed();
+    const captured = useGameStore.getState().captureSession();
+    if (!captured) return;
 
     // Save current game state to the stack
     const snapshot: StackEntry = {
-      grid: cloneGrid(game.grid),
-      puzzle: game.puzzle,
-      mode: game.mode,
-      difficulty: game.difficulty,
-      status: game.status,
-      inputMode: game.inputMode,
-      history: cloneHistory(game.history),
-      historyIndex: game.historyIndex,
-      elapsedMs: game.elapsedMs,
-      hintsUsed: updatedHintsUsed,
-      errorsMade: game.errorsMade,
+      ...captured,
       hintCell: { row, col },
       hintDigit,
     };
@@ -131,34 +81,22 @@ export const useHintStore = create<HintState>((set, get) => ({
     void generateMiniPuzzleAsync(easierDifficulty).then((hintPuzzle) => {
       const hintGrid = gridFromValues(hintPuzzle.initial, true);
 
-      // Clear the timer interval and start a fresh one for the hint puzzle
-      const prevInterval = useGameStore.getState().timerInterval;
-      if (prevInterval) clearInterval(prevInterval);
-      const interval = setInterval(() => {
-        const state = useGameStore.getState();
-        if (state.status === 'playing') {
-          useGameStore.setState({ elapsedMs: state.elapsedMs + 1000 });
-        }
-      }, 1000);
-
-      // Load the hint puzzle into the game store
-      useGameStore.setState({
+      useGameStore.getState().replaceSession({
         grid: hintGrid,
         puzzle: hintPuzzle,
         mode: hintPuzzle.mode,
         difficulty: easierDifficulty,
         status: 'playing',
-        selectedCell: null,
         inputMode: 'digit',
         history: [],
         historyIndex: -1,
         elapsedMs: 0,
-        timerInterval: interval,
-        conflicts: new Map(),
-      });
+        hintsUsed: 0,
+        errorsMade: 0,
+      }, 'hint');
     }).catch(() => {
       set({ stack: get().stack.filter((entry) => entry !== snapshot), transition: null });
-      useGameStore.setState({ hintsUsed: game.hintsUsed });
+      useGameStore.getState().replaceSession({ ...snapshot, hintsUsed: game.hintsUsed }, get().stack.length > 0 ? 'hint' : 'game');
     });
   },
 
@@ -175,31 +113,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     // Restore the parent, then route the earned reveal through the same domain
     // transition as a normal placement so notes, history, completion, and sync
     // behavior cannot drift apart.
-    const prevInterval = useGameStore.getState().timerInterval;
-    if (prevInterval) clearInterval(prevInterval);
-    const interval = setInterval(() => {
-      const state = useGameStore.getState();
-      if (state.status === 'playing') {
-        useGameStore.setState({ elapsedMs: state.elapsedMs + 1000 });
-      }
-    }, 1000);
-
-    useGameStore.setState({
-      grid: cloneGrid(parent.grid),
-      puzzle: parent.puzzle,
-      mode: parent.mode,
-      difficulty: parent.difficulty,
-      status: parent.status,
-      inputMode: parent.inputMode,
-      history: cloneHistory(parent.history),
-      historyIndex: parent.historyIndex,
-      elapsedMs: parent.elapsedMs,
-      hintsUsed: parent.hintsUsed,
-      errorsMade: parent.errorsMade,
-      timerInterval: interval,
-      selectedCell: parent.hintCell,
-      conflicts: findConflicts(parent.grid),
-    });
+    useGameStore.getState().replaceSession(parent, newStack.length > 0 ? 'hint' : 'game', parent.hintCell);
     useGameStore.getState().revealHint(parent.hintCell, parent.hintDigit, false);
   },
 
@@ -214,31 +128,7 @@ export const useHintStore = create<HintState>((set, get) => ({
     set({ stack: newStack, transition: 'back' });
 
     // Restore parent game state as-is
-    const prevInterval = useGameStore.getState().timerInterval;
-    if (prevInterval) clearInterval(prevInterval);
-    const interval = setInterval(() => {
-      const state = useGameStore.getState();
-      if (state.status === 'playing') {
-        useGameStore.setState({ elapsedMs: state.elapsedMs + 1000 });
-      }
-    }, 1000);
-
-    useGameStore.setState({
-      grid: cloneGrid(parent.grid),
-      puzzle: parent.puzzle,
-      mode: parent.mode,
-      difficulty: parent.difficulty,
-      status: parent.status,
-      inputMode: parent.inputMode,
-      history: cloneHistory(parent.history),
-      historyIndex: parent.historyIndex,
-      elapsedMs: parent.elapsedMs,
-      hintsUsed: parent.hintsUsed,
-      errorsMade: parent.errorsMade,
-      timerInterval: interval,
-      selectedCell: null,
-      conflicts: findConflicts(parent.grid),
-    });
+    useGameStore.getState().replaceSession(parent, newStack.length > 0 ? 'hint' : 'game');
   },
 
   abandonToLevel: (level: number) => {
@@ -251,30 +141,6 @@ export const useHintStore = create<HintState>((set, get) => ({
 
     set({ stack: newStack, transition: 'back' });
 
-    const prevInterval = useGameStore.getState().timerInterval;
-    if (prevInterval) clearInterval(prevInterval);
-    const interval = setInterval(() => {
-      const state = useGameStore.getState();
-      if (state.status === 'playing') {
-        useGameStore.setState({ elapsedMs: state.elapsedMs + 1000 });
-      }
-    }, 1000);
-
-    useGameStore.setState({
-      grid: cloneGrid(target.grid),
-      puzzle: target.puzzle,
-      mode: target.mode,
-      difficulty: target.difficulty,
-      status: target.status,
-      inputMode: target.inputMode,
-      history: cloneHistory(target.history),
-      historyIndex: target.historyIndex,
-      elapsedMs: target.elapsedMs,
-      hintsUsed: target.hintsUsed,
-      errorsMade: target.errorsMade,
-      timerInterval: interval,
-      selectedCell: null,
-      conflicts: findConflicts(target.grid),
-    });
+    useGameStore.getState().replaceSession(target, newStack.length > 0 ? 'hint' : 'game');
   },
 }));

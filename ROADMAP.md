@@ -307,6 +307,7 @@ A task is complete when:
 ### GAME-003: Centralize game-session transitions and timer ownership
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Why:** Timer creation and state restoration are duplicated across `gameStore` and `hintStore`, and the two stores reach into one another directly.
 
 **Scope**

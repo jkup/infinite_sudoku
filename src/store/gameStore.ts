@@ -17,7 +17,23 @@ import { findConflicts, getPeers } from '../engine/validator';
 import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame } from '../lib/persistence';
 import { postGameResult } from '../lib/api';
-import { useHintStore } from './hintStore';
+
+export type SessionPhase = 'generating' | 'playing' | 'paused' | 'completed' | 'failed' | 'nested-hint';
+export type SessionKind = 'game' | 'hint' | 'tutorial';
+
+export type GameSessionSnapshot = {
+  grid: Grid;
+  puzzle: Puzzle;
+  mode: GameMode;
+  difficulty: Difficulty;
+  status: GameStatus;
+  inputMode: InputMode;
+  history: HistoryEntry[];
+  historyIndex: number;
+  elapsedMs: number;
+  hintsUsed: number;
+  errorsMade: number;
+};
 
 function vibrate(ms: number | number[] = 10) {
   try { navigator.vibrate?.(ms); } catch { /* unsupported */ }
@@ -33,6 +49,8 @@ type GameState = {
   generationStatus: 'idle' | 'loading' | 'error';
   generationError: string | null;
   pendingGameSettings: { difficulty: Difficulty; mode: GameMode } | null;
+  sessionPhase: SessionPhase;
+  sessionKind: SessionKind;
 
   // Selection
   selectedCell: CellPosition | null;
@@ -44,7 +62,6 @@ type GameState = {
 
   // Timer
   elapsedMs: number;
-  timerInterval: ReturnType<typeof setInterval> | null;
   pausedByUser: boolean;
 
   // Conflicts
@@ -71,6 +88,9 @@ type GameState = {
   resumeGame: () => void;
   autoPause: () => void;
   autoResume: () => void;
+  incrementHintsUsed: () => void;
+  captureSession: () => GameSessionSnapshot | null;
+  replaceSession: (snapshot: GameSessionSnapshot, kind: SessionKind, selectedCell?: CellPosition | null) => void;
 };
 
 function updateConflicts(grid: Grid): Map<string, CellPosition[]> {
@@ -88,6 +108,29 @@ function cloneGrid(grid: Grid): Grid {
 }
 
 let latestGameRequestId = 0;
+let timerInterval: ReturnType<typeof setInterval> | null = null;
+let timerStartedAt = 0;
+let timerBaseElapsedMs = 0;
+
+function stopTimer(set: (partial: Partial<GameState>) => void): number {
+  if (timerInterval === null) return useGameStore.getState().elapsedMs;
+  const elapsedMs = timerBaseElapsedMs + Math.max(0, Date.now() - timerStartedAt);
+  clearInterval(timerInterval);
+  timerInterval = null;
+  set({ elapsedMs });
+  return elapsedMs;
+}
+
+function startTimer(set: (partial: Partial<GameState>) => void, get: () => GameState, elapsedMs: number): void {
+  if (timerInterval !== null) clearInterval(timerInterval);
+  timerBaseElapsedMs = elapsedMs;
+  timerStartedAt = Date.now();
+  set({ elapsedMs });
+  timerInterval = setInterval(() => {
+    if (get().status !== 'playing') return;
+    set({ elapsedMs: timerBaseElapsedMs + Math.max(0, Date.now() - timerStartedAt) });
+  }, 1000);
+}
 
 /**
  * When a digit is removed from a cell, restore that digit to corner notes
@@ -230,6 +273,18 @@ function saveToCloud(state: {
   });
 }
 
+function completeCurrentSession(set: (partial: Partial<GameState>) => void, get: () => GameState): void {
+  if (get().status === 'completed' && get().sessionPhase === 'completed') return;
+  const elapsedMs = stopTimer(set);
+  set({ status: 'completed', sessionPhase: 'completed' });
+  vibrate([50, 50, 50, 50, 100]);
+  const { mode, difficulty, hintsUsed, errorsMade, puzzle, submittedCompletionId, sessionKind } = get();
+  const completionId = puzzle?.completionId ?? crypto.randomUUID();
+  if (sessionKind !== 'game' || submittedCompletionId === completionId) return;
+  set({ submittedCompletionId: completionId });
+  saveToCloud({ completionId, mode, difficulty, elapsedMs, hintsUsed, errorsMade });
+}
+
 export const useGameStore = create<GameState>((set, get) => ({
   grid: [],
   puzzle: null,
@@ -239,12 +294,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   generationStatus: 'idle',
   generationError: null,
   pendingGameSettings: null,
+  sessionPhase: 'playing',
+  sessionKind: 'game',
   selectedCell: null,
   inputMode: 'digit',
   history: [],
   historyIndex: -1,
   elapsedMs: 0,
-  timerInterval: null,
   pausedByUser: false,
   conflicts: new Map(),
   hintsUsed: 0,
@@ -253,25 +309,18 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   newGame: (difficulty, mode = 'classic') => {
     const requestId = ++latestGameRequestId;
-    const { timerInterval } = get();
-    if (timerInterval) clearInterval(timerInterval);
+    stopTimer(set);
     set({
-      timerInterval: null,
       generationStatus: 'loading',
       generationError: null,
       pendingGameSettings: { difficulty, mode },
+      sessionPhase: 'generating',
+      sessionKind: 'game',
     });
 
     generatePuzzleAsync(difficulty, mode).then((puzzle) => {
       if (requestId !== latestGameRequestId) return;
       const grid = gridFromValues(puzzle.initial, true);
-
-      const interval = setInterval(() => {
-        const state = get();
-        if (state.status === 'playing') {
-          set({ elapsedMs: state.elapsedMs + 1000 });
-        }
-      }, 1000);
 
       set({
         grid,
@@ -282,23 +331,26 @@ export const useGameStore = create<GameState>((set, get) => ({
         generationStatus: 'idle',
         generationError: null,
         pendingGameSettings: null,
+        sessionPhase: 'playing',
+        sessionKind: 'game',
         selectedCell: null,
         inputMode: 'digit',
         history: [],
         historyIndex: -1,
         elapsedMs: 0,
-        timerInterval: interval,
         pausedByUser: false,
         conflicts: new Map(),
         hintsUsed: 0,
         errorsMade: 0,
         submittedCompletionId: null,
       });
+      startTimer(set, get, 0);
     }).catch((error: unknown) => {
       if (requestId !== latestGameRequestId) return;
       set({
         generationStatus: 'error',
         generationError: error instanceof Error ? error.message : 'Puzzle generation failed',
+        sessionPhase: 'failed',
       });
     });
   },
@@ -399,21 +451,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       conflicts,
       history: newHistory,
       historyIndex: newHistory.length - 1,
-      status: isComplete ? 'completed' : 'playing',
+      status: 'playing',
       errorsMade: isNewError ? get().errorsMade + 1 : get().errorsMade,
     });
 
     if (isComplete) {
-      vibrate([50, 50, 50, 50, 100]);
-      const { timerInterval, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em, puzzle, submittedCompletionId } = get();
-      if (timerInterval) clearInterval(timerInterval);
-      // Only save to cloud for top-level puzzles, not hint puzzles
-      const isInHintStack = useHintStore.getState().stack.length > 0;
-      const completionId = puzzle?.completionId ?? crypto.randomUUID();
-      if (!isInHintStack && submittedCompletionId !== completionId) {
-        set({ submittedCompletionId: completionId });
-        saveToCloud({ completionId, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
-      }
+      completeCurrentSession(set, get);
     }
   },
 
@@ -648,15 +691,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const saved = loadGame();
     if (!saved) return false;
 
-    const { timerInterval } = get();
-    if (timerInterval) clearInterval(timerInterval);
-
-    const interval = setInterval(() => {
-      const state = get();
-      if (state.status === 'playing') {
-        set({ elapsedMs: state.elapsedMs + 1000 });
-      }
-    }, 1000);
+    stopTimer(set);
 
     set({
       grid: saved.grid,
@@ -667,11 +702,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       generationStatus: 'idle',
       generationError: null,
       pendingGameSettings: null,
+      sessionPhase: saved.status,
+      sessionKind: 'game',
       inputMode: saved.inputMode,
       history: saved.history,
       historyIndex: saved.historyIndex,
       elapsedMs: saved.elapsedMs,
-      timerInterval: interval,
       pausedByUser: false,
       selectedCell: null,
       conflicts: updateConflicts(saved.grid),
@@ -679,6 +715,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       errorsMade: 0,
       submittedCompletionId: saved.status === 'completed' ? saved.puzzle.completionId ?? null : null,
     });
+    if (saved.status === 'playing') startTimer(set, get, saved.elapsedMs);
     return true;
   },
 
@@ -697,12 +734,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       target.centerNotes = new Set(change.previousCenterNotes);
     }
 
+    const wasCompleted = get().status === 'completed';
     set({
       grid: newGrid,
       historyIndex: historyIndex - 1,
       conflicts: updateConflicts(newGrid),
       status: 'playing',
+      sessionPhase: get().sessionKind === 'hint' ? 'nested-hint' : 'playing',
     });
+    if (wasCompleted) startTimer(set, get, get().elapsedMs);
   },
 
   redo: () => {
@@ -727,40 +767,78 @@ export const useGameStore = create<GameState>((set, get) => ({
       grid: newGrid,
       historyIndex: historyIndex + 1,
       conflicts,
-      status: isComplete ? 'completed' : 'playing',
+      status: 'playing',
     });
 
     if (isComplete) {
-      const { mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em, puzzle, submittedCompletionId } = get();
-      const isInHintStack = useHintStore.getState().stack.length > 0;
-      const completionId = puzzle?.completionId ?? crypto.randomUUID();
-      if (!isInHintStack && submittedCompletionId !== completionId) {
-        set({ submittedCompletionId: completionId });
-        saveToCloud({ completionId, mode, difficulty, elapsedMs, hintsUsed: hu, errorsMade: em });
-      }
+      completeCurrentSession(set, get);
     }
   },
 
   pauseGame: () => {
-    set({ status: 'paused', pausedByUser: true });
+    if (get().status !== 'playing') return;
+    stopTimer(set);
+    set({ status: 'paused', sessionPhase: 'paused', pausedByUser: true });
   },
 
   resumeGame: () => {
-    set({ status: 'playing', pausedByUser: false });
+    if (get().status !== 'paused') return;
+    set({ status: 'playing', sessionPhase: get().sessionKind === 'hint' ? 'nested-hint' : 'playing', pausedByUser: false });
+    startTimer(set, get, get().elapsedMs);
   },
 
   autoPause: () => {
     const { status } = get();
     if (status === 'playing') {
-      set({ status: 'paused' });
+      stopTimer(set);
+      set({ status: 'paused', sessionPhase: 'paused' });
     }
   },
 
   autoResume: () => {
     const { status, pausedByUser } = get();
     if (status === 'paused' && !pausedByUser) {
-      set({ status: 'playing' });
+      set({ status: 'playing', sessionPhase: get().sessionKind === 'hint' ? 'nested-hint' : 'playing' });
+      startTimer(set, get, get().elapsedMs);
     }
+  },
+
+  incrementHintsUsed: () => set({ hintsUsed: get().hintsUsed + 1 }),
+
+  captureSession: () => {
+    const state = get();
+    if (!state.puzzle) return null;
+    const elapsedMs = stopTimer(set);
+    return {
+      grid: cloneGrid(state.grid), puzzle: state.puzzle, mode: state.mode,
+      difficulty: state.difficulty, status: state.status, inputMode: state.inputMode,
+      history: state.history, historyIndex: state.historyIndex, elapsedMs,
+      hintsUsed: state.hintsUsed, errorsMade: state.errorsMade,
+    };
+  },
+
+  replaceSession: (snapshot, kind, selectedCell = null) => {
+    stopTimer(set);
+    const grid = cloneGrid(snapshot.grid);
+    set({
+      ...snapshot,
+      grid,
+      history: snapshot.history.map((entry) => ({
+        changes: entry.changes.map((change) => ({
+          ...change,
+          previousCornerNotes: new Set(change.previousCornerNotes),
+          newCornerNotes: new Set(change.newCornerNotes),
+          previousCenterNotes: new Set(change.previousCenterNotes),
+          newCenterNotes: new Set(change.newCenterNotes),
+        })),
+      })),
+      selectedCell,
+      sessionKind: kind,
+      sessionPhase: snapshot.status === 'playing' && kind === 'hint' ? 'nested-hint' : snapshot.status,
+      pausedByUser: snapshot.status === 'paused',
+      conflicts: updateConflicts(grid),
+    });
+    if (snapshot.status === 'playing') startTimer(set, get, snapshot.elapsedMs);
   },
 }));
 

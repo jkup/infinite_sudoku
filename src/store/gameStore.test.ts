@@ -31,8 +31,6 @@ function makePuzzle(emptyCells: [number, number][] = [[0, 0]]): Puzzle {
 }
 
 function resetGame(puzzle = makePuzzle()) {
-  const interval = useGameStore.getState().timerInterval;
-  if (interval) clearInterval(interval);
   useHintStore.setState({ stack: [], transition: null, hintRevealCell: null });
   useGameStore.setState({
     grid: gridFromValues(puzzle.initial, true),
@@ -43,12 +41,13 @@ function resetGame(puzzle = makePuzzle()) {
     generationStatus: 'idle',
     generationError: null,
     pendingGameSettings: null,
+    sessionPhase: 'playing',
+    sessionKind: 'game',
     selectedCell: null,
     inputMode: 'digit',
     history: [],
     historyIndex: -1,
     elapsedMs: 0,
-    timerInterval: null,
     pausedByUser: false,
     conflicts: new Map(),
     hintsUsed: 0,
@@ -66,8 +65,6 @@ describe('game store transitions', () => {
   });
 
   afterEach(() => {
-    const interval = useGameStore.getState().timerInterval;
-    if (interval) clearInterval(interval);
     vi.clearAllTimers();
     vi.useRealTimers();
   });
@@ -134,6 +131,41 @@ describe('game store transitions', () => {
     expect(useGameStore.getState().status).toBe('paused');
     useGameStore.getState().autoResume();
     expect(useGameStore.getState().status).toBe('playing');
+  });
+
+  it('uses timestamps so background throttling does not lose elapsed time', () => {
+    const game = useGameStore.getState();
+    const snapshot = game.captureSession()!;
+    game.replaceSession({ ...snapshot, elapsedMs: 2_000 }, 'game');
+
+    vi.setSystemTime(Date.now() + 5_500);
+    useGameStore.getState().autoPause();
+
+    expect(useGameStore.getState().elapsedMs).toBe(7_500);
+  });
+
+  it('owns only one interval and stops it for pause and completion', () => {
+    const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
+    const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
+    const snapshot = useGameStore.getState().captureSession()!;
+
+    useGameStore.getState().replaceSession(snapshot, 'game');
+    useGameStore.getState().replaceSession(snapshot, 'game');
+    expect(setIntervalSpy).toHaveBeenCalledTimes(2);
+    expect(clearIntervalSpy).toHaveBeenCalled();
+
+    useGameStore.getState().pauseGame();
+    const pausedAt = useGameStore.getState().elapsedMs;
+    vi.advanceTimersByTime(5_000);
+    expect(useGameStore.getState().elapsedMs).toBe(pausedAt);
+
+    useGameStore.getState().resumeGame();
+    useGameStore.getState().selectCell({ row: 0, col: 0 });
+    useGameStore.getState().placeDigit(solution[0][0]);
+    const completedAt = useGameStore.getState().elapsedMs;
+    vi.advanceTimersByTime(5_000);
+    expect(useGameStore.getState().sessionPhase).toBe('completed');
+    expect(useGameStore.getState().elapsedMs).toBe(completedAt);
   });
 
   it('creates and toggles automatic candidate notes as one undoable action', () => {
