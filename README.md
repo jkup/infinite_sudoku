@@ -104,6 +104,21 @@ In a private profile, load the preview, confirm the manifest and service worker
 in developer tools, install the app, then test a reload with the network disabled.
 Clear site data between cache-strategy tests.
 
+Production response policy is declared in `public/_headers`: HTML, the manifest,
+and service-worker files revalidate; fingerprinted `/assets/*` files cache for a
+year as immutable. The CSP permits the Clerk frontend, bot-protection frames,
+first-party workers, and inline styles required by Clerk, while denying framing
+and unused browser capabilities. Pages Functions add `private, no-store` and
+security headers directly because `_headers` rules apply only to static assets.
+
+After deployment, spot-check both response paths (replace the hostname):
+
+```sh
+curl -I https://infinitesudoku.com/
+curl -I https://infinitesudoku.com/assets/<fingerprinted-file>.js
+curl -i https://infinitesudoku.com/api/stats
+```
+
 ## Cloudflare Pages deployment
 
 The intended production setup is a Git-integrated Pages project:

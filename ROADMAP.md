@@ -412,6 +412,7 @@ A task is complete when:
 ### OPS-003: Add security and caching headers
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Add a Content Security Policy compatible with Clerk, Vite output, the service worker, and required assets.

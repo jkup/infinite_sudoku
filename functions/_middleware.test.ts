@@ -53,6 +53,8 @@ describe('API authentication middleware', () => {
     const response = await onRequest[0](context);
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(context.data).toEqual({ clerkUserId: 'user_verified' });
     expect(context.next).toHaveBeenCalledOnce();
     expect(authenticateRequest).toHaveBeenCalledWith(context.request, expect.objectContaining({
@@ -75,6 +77,7 @@ describe('API authentication middleware', () => {
     const response = await onRequest[0](context);
 
     expect(response.status).toBe(401);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     expect(await response.json()).toEqual({ error: 'Unauthorized' });
     expect(context.next).not.toHaveBeenCalled();
   });
