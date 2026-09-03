@@ -43,9 +43,11 @@ fresh worker should install and the saved puzzle should remain. Record browser
 versions and results in the release notes.
 
 On 2026-09-03, the repository owner ran the localhost flow in a clean incognito
-browser session and reported the install, offline reload, saved-puzzle recovery,
-service-worker recovery, update-consent, and reconnect behavior working. The
-automated artifact and lifecycle suites passed in the same build. Codex could
-not independently attach to that tab because its browser service rejected the
-connection before discovery; future release audits should continue recording
-browser/device versions for the full Chromium and Safari matrix above.
+Chrome session and reported the install, offline reload, saved-puzzle recovery,
+service-worker recovery, update-consent, and reconnect behavior working. Codex
+then independently attached to that session, confirmed all 81 cells rendered,
+and verified that reloading preserved the exact puzzle state without application
+errors. The manifest and configured theme color were present, and the automated
+artifact and lifecycle suites passed in the same build. Future release audits
+should continue recording browser/device versions for the full Chromium and
+Safari matrix above.

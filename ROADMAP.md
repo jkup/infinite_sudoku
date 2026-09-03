@@ -452,6 +452,9 @@ A task is complete when:
 
 **Priority:** P2
 **Status:** Complete (2026-09-03)
+**Verification:** Clean incognito Chrome flow completed by the repository owner;
+Codex independently attached afterward and confirmed the 81-cell puzzle survives
+a reload with identical state and no application errors (2026-09-03).
 **Scope**
 
 - Test first install, repeat visit, offline gameplay, update discovery, and recovery from a bad/stale service worker.
