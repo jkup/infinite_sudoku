@@ -17,6 +17,7 @@ import { findConflicts, getPeers, isPuzzleComplete, isPuzzleDefinitionValid } fr
 import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame, hasSavedGame } from '../lib/persistence';
 import { postGameResult } from '../lib/api';
+import { getQueuedCompletion, queueCompletion, removeQueuedCompletion, type QueuedCompletion } from '../lib/completionQueue';
 
 export type SessionPhase = 'generating' | 'playing' | 'paused' | 'completed' | 'failed' | 'nested-hint';
 export type SessionKind = 'game' | 'hint' | 'tutorial';
@@ -72,6 +73,8 @@ type GameState = {
   hintsUsed: number;
   errorsMade: number;
   submittedCompletionId: string | null;
+  completionSyncStatus: 'idle' | 'syncing' | 'synced' | 'pending';
+  completionSyncError: string | null;
 
   // Actions
   newGame: (difficulty: Difficulty, mode?: GameMode) => void;
@@ -93,6 +96,7 @@ type GameState = {
   captureSession: () => GameSessionSnapshot | null;
   replaceSession: (snapshot: GameSessionSnapshot, kind: SessionKind, selectedCell?: CellPosition | null) => void;
   clearRecoveryNotice: () => void;
+  retryCompletion: () => void;
 };
 
 function updateConflicts(grid: Grid): Map<string, CellPosition[]> {
@@ -244,24 +248,21 @@ function restoreNotesOnRemoval(
 }
 
 /** Fire-and-forget cloud save when a game completes */
-function saveToCloud(state: {
-  completionId: string;
-  mode: GameMode;
-  difficulty: Difficulty;
-  elapsedMs: number;
-  hintsUsed: number;
-  errorsMade: number;
-}): void {
-  postGameResult({
-    completionId: state.completionId,
-    mode: state.mode,
-    difficulty: state.difficulty,
-    solveTimeMs: state.elapsedMs,
-    hintsUsed: state.hintsUsed,
-    maxHintDepth: 0,
-    errorsMade: state.errorsMade,
-  }).catch(() => {
-    // Cloud save is best-effort — fail silently
+function syncCompletion(completion: QueuedCompletion, set: (partial: Partial<GameState>) => void): void {
+  queueCompletion(completion);
+  set({ completionSyncStatus: 'syncing', completionSyncError: null });
+  void postGameResult(completion).then(() => {
+    removeQueuedCompletion(completion.completionId);
+    set({ completionSyncStatus: 'synced', completionSyncError: null });
+  }).catch((error: unknown) => {
+    const correlationId = error && typeof error === 'object' && 'correlationId' in error
+      ? String(error.correlationId) : null;
+    set({
+      completionSyncStatus: 'pending',
+      completionSyncError: correlationId
+        ? `Stats not synced. Reference: ${correlationId}`
+        : 'Stats not synced. Check your connection and retry.',
+    });
   });
 }
 
@@ -274,7 +275,7 @@ function completeCurrentSession(set: (partial: Partial<GameState>) => void, get:
   const completionId = puzzle?.completionId ?? crypto.randomUUID();
   if (sessionKind !== 'game' || submittedCompletionId === completionId) return;
   set({ submittedCompletionId: completionId });
-  saveToCloud({ completionId, mode, difficulty, elapsedMs, hintsUsed, errorsMade });
+  syncCompletion({ completionId, mode, difficulty, solveTimeMs: elapsedMs, hintsUsed, maxHintDepth: 0, errorsMade }, set);
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -299,6 +300,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   hintsUsed: 0,
   errorsMade: 0,
   submittedCompletionId: null,
+  completionSyncStatus: 'idle',
+  completionSyncError: null,
 
   newGame: (difficulty, mode = 'classic') => {
     const requestId = ++latestGameRequestId;
@@ -337,6 +340,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         hintsUsed: 0,
         errorsMade: 0,
         submittedCompletionId: null,
+        completionSyncStatus: 'idle',
+        completionSyncError: null,
       });
       startTimer(set, get, 0);
     }).catch((error: unknown) => {
@@ -714,6 +719,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       submittedCompletionId: saved.status === 'completed'
         ? saved.submittedCompletionId ?? saved.puzzle.completionId ?? null
         : saved.submittedCompletionId,
+      completionSyncStatus: saved.puzzle.completionId && getQueuedCompletion(saved.puzzle.completionId) ? 'pending' : 'idle',
+      completionSyncError: null,
     });
     if (saved.status === 'playing') startTimer(set, get, saved.elapsedMs);
     return true;
@@ -842,6 +849,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   clearRecoveryNotice: () => set({ recoveryNotice: null }),
+
+  retryCompletion: () => {
+    const completionId = get().submittedCompletionId ?? get().puzzle?.completionId;
+    if (!completionId) return;
+    const completion = getQueuedCompletion(completionId);
+    if (completion) syncCompletion(completion, set);
+  },
 }));
 
 // Auto-save on every state change (debounced slightly)

@@ -282,6 +282,9 @@ function GameScreen() {
   const generationStatus = useGameStore((s) => s.generationStatus);
   const generationError = useGameStore((s) => s.generationError);
   const pendingGameSettings = useGameStore((s) => s.pendingGameSettings);
+  const completionSyncStatus = useGameStore((s) => s.completionSyncStatus);
+  const completionSyncError = useGameStore((s) => s.completionSyncError);
+  const retryCompletion = useGameStore((s) => s.retryCompletion);
 
   const hintStack = useHintStore((s) => s.stack);
   const completeHintPuzzle = useHintStore((s) => s.completeHintPuzzle);
@@ -555,6 +558,16 @@ function GameScreen() {
             <p className="mb-6" style={{ color: 'var(--color-text-muted)' }}>
               Great job solving this {difficulty} {mode} puzzle!
             </p>
+            <div className="mb-4 text-sm" aria-live="polite" style={{ color: 'var(--color-text-muted)' }}>
+              {completionSyncStatus === 'syncing' && <p>Syncing stats…</p>}
+              {completionSyncStatus === 'synced' && <p>Stats synced.</p>}
+              {completionSyncStatus === 'pending' && (
+                <div>
+                  <p>{completionSyncError}</p>
+                  <button onClick={retryCompletion} className="mt-2 underline font-semibold">Retry stats sync</button>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => newGame(difficulty, mode)}
               className="px-6 py-3 rounded-xl font-semibold transition-colors"

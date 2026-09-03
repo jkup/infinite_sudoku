@@ -60,6 +60,7 @@ function reset(difficulty: Puzzle['difficulty'], blanks?: Array<[number, number]
     sessionPhase: 'playing', sessionKind: 'game',
     pausedByUser: false, conflicts: new Map(), hintsUsed: 0, errorsMade: 0,
     submittedCompletionId: null,
+    completionSyncStatus: 'idle', completionSyncError: null,
   });
 }
 

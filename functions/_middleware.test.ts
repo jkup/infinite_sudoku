@@ -45,6 +45,7 @@ describe('API authentication middleware', () => {
   });
 
   it('passes a verified user ID to downstream API handlers', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     authenticateRequest.mockResolvedValue({
       isAuthenticated: true,
       toAuth: () => ({ userId: 'user_verified' }),
@@ -55,12 +56,18 @@ describe('API authentication middleware', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('X-Request-ID')).toMatch(/^[0-9a-f-]{36}$/);
     expect(context.data).toEqual({ clerkUserId: 'user_verified' });
     expect(context.next).toHaveBeenCalledOnce();
     expect(authenticateRequest).toHaveBeenCalledWith(context.request, expect.objectContaining({
       acceptsToken: 'session_token',
       authorizedParties: expect.arrayContaining(['https://infinitesudoku.com']),
     }));
+    const log = info.mock.calls[0][0] as string;
+    expect(log).toContain('"endpoint":"/api/stats"');
+    expect(log).toContain('"status":200');
+    expect(log).not.toContain('header.payload.signature');
+    expect(log).not.toContain('user_verified');
   });
 
   it.each([

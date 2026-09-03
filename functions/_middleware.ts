@@ -25,7 +25,7 @@ function secureApiResponse(response: Response): Response {
 }
 
 function unauthorized(): Response {
-  return secureApiResponse(Response.json({ error: 'Unauthorized' }, { status: 401 }));
+  return Response.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
 export const onRequest: PagesFunction<Cloudflare.Env>[] = [
@@ -38,12 +38,28 @@ export const onRequest: PagesFunction<Cloudflare.Env>[] = [
       return context.next();
     }
 
+    const startedAt = Date.now();
+    const requestId = crypto.randomUUID();
+    const finish = (response: Response, category?: string): Response => {
+      const secured = secureApiResponse(response);
+      const failureCategory = category ?? secured.headers.get('X-Error-Category') ?? (
+        secured.status >= 500 ? 'unexpected' : secured.status >= 400 ? 'validation' : null
+      );
+      secured.headers.delete('X-Error-Category');
+      secured.headers.set('X-Request-ID', requestId);
+      const entry = JSON.stringify({
+        message: 'API request completed', requestId, endpoint: url.pathname,
+        status: secured.status, durationMs: Date.now() - startedAt,
+        ...(failureCategory ? { failureCategory } : {}),
+      });
+      if (secured.status >= 500) console.error(entry);
+      else if (secured.status >= 400) console.warn(entry);
+      else console.info(entry);
+      return secured;
+    };
+
     if (!env.CLERK_SECRET || !env.CLERK_PUBLIC) {
-      console.error(JSON.stringify({
-        message: 'Clerk authentication is not configured',
-        path: url.pathname,
-      }));
-      return unauthorized();
+      return finish(unauthorized(), 'authentication');
     }
 
     try {
@@ -56,20 +72,24 @@ export const onRequest: PagesFunction<Cloudflare.Env>[] = [
         authorizedParties: getAuthorizedParties(env.CLERK_AUTHORIZED_PARTIES),
       });
 
-      if (!requestState.isAuthenticated) return unauthorized();
+      if (!requestState.isAuthenticated) return finish(unauthorized(), 'authentication');
 
       const { userId } = requestState.toAuth();
-      if (!userId) return unauthorized();
+      if (!userId) return finish(unauthorized(), 'authentication');
 
       (data as Record<string, unknown>).clerkUserId = userId;
-      return secureApiResponse(await context.next());
+      try {
+        return finish(await context.next());
+      } catch (error) {
+        console.error(JSON.stringify({
+          message: 'API handler threw', requestId, endpoint: url.pathname,
+          failureCategory: 'unexpected', errorType: error instanceof Error ? error.name : 'UnknownError',
+        }));
+        return finish(Response.json({ error: 'Internal server error' }, { status: 500 }), 'unexpected');
+      }
     } catch (error) {
-      console.warn(JSON.stringify({
-        message: 'Clerk authentication failed',
-        path: url.pathname,
-        errorType: error instanceof Error ? error.name : 'UnknownError',
-      }));
-      return unauthorized();
+      void error;
+      return finish(unauthorized(), 'upstream');
     }
   },
 ];

@@ -433,6 +433,7 @@ A task is complete when:
 ### OPS-004: Add structured error handling and observability
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Add structured logs for endpoint, status, duration, failure category, and request/correlation ID.

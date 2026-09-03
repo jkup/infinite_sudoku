@@ -1,6 +1,6 @@
 import type { Difficulty, GameMode } from '../engine/types';
 
-type GameResultPayload = {
+export type GameResultPayload = {
   completionId: string;
   mode: GameMode;
   difficulty: Difficulty;
@@ -10,6 +10,18 @@ type GameResultPayload = {
   errorsMade: number;
   dailyPuzzleId?: number;
 };
+
+export class ApiError extends Error {
+  status: number;
+  correlationId: string | null;
+
+  constructor(status: number, correlationId: string | null) {
+    super(`API request failed (${status})`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.correlationId = correlationId;
+  }
+}
 
 export type UserStats = {
   totalGamesCompleted: number;
@@ -56,15 +68,13 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
   return fetch(url, { ...options, headers });
 }
 
-export async function postGameResult(data: GameResultPayload): Promise<{ score: number } | null> {
+export async function postGameResult(data: GameResultPayload): Promise<{ score: number }> {
   const res = await authFetch('/api/stats', {
     method: 'POST',
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    console.error(`[stats] POST /api/stats failed (${res.status}):`, body);
-    return null;
+    throw new ApiError(res.status, res.headers.get('X-Request-ID'));
   }
   const result = await res.json() as { score: number };
   return { score: result.score };

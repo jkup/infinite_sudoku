@@ -174,6 +174,9 @@ missing configuration, invalid tokens, and Clerk verification errors all return
 401 without invoking an API handler. Non-API asset requests remain available if
 authentication is unavailable. Tests enforce this boundary.
 
+See [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) for correlation-ID diagnosis,
+redaction rules, saved dashboard views, and alert thresholds.
+
 ## Custom domain and rollback
 
 Attach the production hostname under the Pages project's **Custom domains**

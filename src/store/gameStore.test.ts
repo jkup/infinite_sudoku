@@ -12,6 +12,8 @@ vi.mock('../lib/api', () => ({ postGameResult: vi.fn().mockResolvedValue(undefin
 
 import { useGameStore } from './gameStore';
 import { useHintStore } from './hintStore';
+import { postGameResult } from '../lib/api';
+import { getQueuedCompletion } from '../lib/completionQueue';
 
 const solution = Array.from({ length: 9 }, (_, row) =>
   Array.from({ length: 9 }, (_, col) => ((row * 3 + Math.floor(row / 3) + col) % 9 + 1) as Digit),
@@ -53,6 +55,8 @@ function resetGame(puzzle = makePuzzle()) {
     hintsUsed: 0,
     errorsMade: 0,
     submittedCompletionId: null,
+    completionSyncStatus: 'idle',
+    completionSyncError: null,
   });
 }
 
@@ -60,6 +64,7 @@ describe('game store transitions', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mockGeneratePuzzleAsync.mockReset();
+    vi.mocked(postGameResult).mockReset().mockResolvedValue({ score: 0 });
     localStorage.clear();
     resetGame();
   });
@@ -80,6 +85,25 @@ describe('game store transitions', () => {
     expect(completed.status).toBe('completed');
     expect(completed.historyIndex).toBe(0);
     expect(completed.history).toHaveLength(1);
+  });
+
+  it('queues failed completion sync and retries the same idempotency key', async () => {
+    vi.mocked(postGameResult).mockRejectedValueOnce({ correlationId: 'request-123' });
+    useGameStore.getState().selectCell({ row: 0, col: 0 });
+    useGameStore.getState().placeDigit(solution[0][0]);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const completionId = useGameStore.getState().puzzle!.completionId!;
+    expect(useGameStore.getState().completionSyncStatus).toBe('pending');
+    expect(useGameStore.getState().completionSyncError).toContain('request-123');
+    expect(getQueuedCompletion(completionId)?.completionId).toBe(completionId);
+
+    useGameStore.getState().retryCompletion();
+    await vi.waitFor(() => expect(useGameStore.getState().completionSyncStatus).toBe('synced'));
+    expect(getQueuedCompletion(completionId)).toBeNull();
+    expect(vi.mocked(postGameResult).mock.calls[0][0].completionId)
+      .toBe(vi.mocked(postGameResult).mock.calls[1][0].completionId);
   });
 
   it('undoes and redoes a completed placement', () => {

@@ -43,10 +43,10 @@ export const onRequestPost: PagesFunction<Cloudflare.Env, string, RequestData> =
     body = await parseGameResult(context.request);
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return Response.json({ error: error.message }, { status: error.status });
+      return Response.json({ error: error.message }, { status: error.status, headers: { 'X-Error-Category': 'validation' } });
     }
     console.error(JSON.stringify({ message: 'Unexpected game result parsing error', errorType: error instanceof Error ? error.name : 'UnknownError' }));
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    return Response.json({ error: 'Internal server error' }, { status: 500, headers: { 'X-Error-Category': 'unexpected' } });
   }
 
   try {
@@ -56,7 +56,7 @@ export const onRequestPost: PagesFunction<Cloudflare.Env, string, RequestData> =
         'SELECT id, date, mode, difficulty FROM daily_puzzles WHERE id = ?',
       ).bind(body.dailyPuzzleId).first<{ id: number; date: string; mode: string; difficulty: string }>();
       if (!daily || daily.mode !== body.mode || daily.difficulty !== body.difficulty) {
-        return Response.json({ error: 'Invalid daily puzzle' }, { status: 400 });
+        return Response.json({ error: 'Invalid daily puzzle' }, { status: 400, headers: { 'X-Error-Category': 'validation' } });
       }
     }
 
@@ -123,7 +123,7 @@ export const onRequestPost: PagesFunction<Cloudflare.Env, string, RequestData> =
     ]);
   } catch (error) {
     console.error(JSON.stringify({ message: 'Failed to persist game result', errorType: error instanceof Error ? error.name : 'UnknownError' }));
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    return Response.json({ error: 'Internal server error' }, { status: 500, headers: { 'X-Error-Category': 'database' } });
   }
 
   return Response.json({ ok: true, score: body.score });

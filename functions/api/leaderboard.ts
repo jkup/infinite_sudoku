@@ -11,7 +11,7 @@ export const onRequestGet: PagesFunction<Cloudflare.Env, string, RequestData> = 
   const mode = url.searchParams.get('mode') || 'classic';
 
   if (!date) {
-    return Response.json({ error: 'date parameter required' }, { status: 400 });
+    return Response.json({ error: 'date parameter required' }, { status: 400, headers: { 'X-Error-Category': 'validation' } });
   }
 
   const results = await DB.prepare(
