@@ -348,6 +348,7 @@ A task is complete when:
 ### GAME-005: Make persistence versioned and complete
 
 **Priority:** P2
+**Status:** Complete (2026-09-03)
 **Depends on:** GAME-003
 **Scope**
 

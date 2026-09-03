@@ -71,6 +71,7 @@ describe('hint stack transitions', () => {
   });
 
   afterEach(() => {
+    useGameStore.getState().captureSession();
     vi.clearAllTimers();
     vi.useRealTimers();
   });
@@ -124,6 +125,17 @@ describe('hint stack transitions', () => {
     expect(useGameStore.getState().elapsedMs).toBe(42_000);
     expect(useGameStore.getState().hintsUsed).toBe(1);
     expect(useGameStore.getState().grid[0][0].digit).toBeNull();
+  });
+
+  it('keeps the top-level parent as the reload point during an active hint', async () => {
+    reset('hard');
+    useHintStore.getState().requestHint();
+    await vi.waitFor(() => expect(useGameStore.getState().grid).toHaveLength(6));
+    vi.advanceTimersByTime(501);
+
+    const saved = JSON.parse(localStorage.getItem('infinite-sudoku-save')!);
+    expect(saved.grid).toHaveLength(9);
+    expect(saved.hintsUsed).toBe(1);
   });
 
   it('restores the exact timestamped parent time after nested hint play', async () => {

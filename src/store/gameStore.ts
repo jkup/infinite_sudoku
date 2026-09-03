@@ -709,9 +709,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       pausedByUser: false,
       selectedCell: null,
       conflicts: updateConflicts(saved.grid),
-      hintsUsed: 0,
-      errorsMade: 0,
-      submittedCompletionId: saved.status === 'completed' ? saved.puzzle.completionId ?? null : null,
+      hintsUsed: saved.hintsUsed,
+      errorsMade: saved.errorsMade,
+      submittedCompletionId: saved.status === 'completed'
+        ? saved.submittedCompletionId ?? saved.puzzle.completionId ?? null
+        : saved.submittedCompletionId,
     });
     if (saved.status === 'playing') startTimer(set, get, saved.elapsedMs);
     return true;
@@ -845,7 +847,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 // Auto-save on every state change (debounced slightly)
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 useGameStore.subscribe((state) => {
-  if (!state.puzzle) return;
+  // Nested hint/tutorial sessions are ephemeral. The most recent top-level
+  // snapshot remains the recovery point if the app reloads mid-session.
+  if (!state.puzzle || state.sessionKind !== 'game') return;
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
     saveGame({
@@ -858,6 +862,9 @@ useGameStore.subscribe((state) => {
       history: state.history,
       historyIndex: state.historyIndex,
       elapsedMs: state.elapsedMs,
+      hintsUsed: state.hintsUsed,
+      errorsMade: state.errorsMade,
+      submittedCompletionId: state.submittedCompletionId,
     });
   }, 500);
 });

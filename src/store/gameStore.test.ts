@@ -65,6 +65,7 @@ describe('game store transitions', () => {
   });
 
   afterEach(() => {
+    useGameStore.getState().captureSession();
     vi.clearAllTimers();
     vi.useRealTimers();
   });
