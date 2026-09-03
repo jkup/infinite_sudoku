@@ -1,81 +1,165 @@
-# React + TypeScript + Vite
+# Infinite Sudoku
 
-## Cloudflare binding types
+Infinite Sudoku is a React/TypeScript puzzle app with classic and killer modes,
+nested hint puzzles, tutorials, offline/PWA support, optional Clerk sign-in, and
+Cloudflare-backed statistics and leaderboards.
 
-`worker-configuration.d.ts` is generated from `wrangler.toml` and the names in
-local `.dev.vars` files. Run `npm run types:cloudflare` after changing bindings
-or environment-variable names. `npm run types:check` verifies the committed
-file is current, and `npm run typecheck` checks the frontend, Web Worker, and
-Pages Functions projects together.
+## Architecture
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+- `src/` is the Vite/React client. Zustand stores own application state and
+  `src/engine/` contains puzzle generation and validation.
+- Puzzle generation runs in `src/engine/puzzleWorker.ts` when Web Workers are
+  available. Versioned game saves stay in browser `localStorage`.
+- `functions/` contains Cloudflare Pages Functions. File-based routes expose
+  `/api/*`, while `_middleware.ts` verifies Clerk sessions.
+- Cloudflare D1 stores results, daily puzzles, and aggregate user statistics.
+  `db/migrations/` is the only schema source of truth.
+- Vite Plugin PWA generates the service worker and manifest at build time.
 
-Currently, two official plugins are available:
+The app remains playable without Clerk. Authentication and cloud statistics are
+disabled in that mode; local games and saves continue to work.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Prerequisites and installation
 
-## React Compiler
+- Node.js 22, 23, or 24 (see `package.json`)
+- npm
+- A Cloudflare account for full-stack development or deployment
+- A Clerk application for authentication and cloud statistics
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm ci
+cp .dev.vars.example .dev.vars
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Never commit `.dev.vars`, Clerk secret keys, API tokens, or database exports.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Configuration
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Replace the placeholders in `.dev.vars` for local Pages development:
+
+| Name | Location | Purpose |
+| --- | --- | --- |
+| `CLERK_PUBLIC` | Build and Pages runtime | Clerk publishable key; safe for the browser |
+| `CLERK_SECRET` | Pages runtime secret | Verifies session tokens; never expose or commit |
+| `CLERK_AUTHORIZED_PARTIES` | Pages runtime, optional | Comma-separated origins allowed to present tokens |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Vite-only development, optional | Alternative key for `npm run dev` |
+| `DB` | Wrangler/Pages binding | D1 database used by Pages Functions |
+
+`wrangler.toml` declares the local `DB` binding and migration directory. In the
+Pages dashboard, configure a D1 binding named exactly `DB` for preview and
+production, and configure Clerk separately per environment. Use test Clerk keys
+and a non-production D1 database for previews.
+
+After changing bindings or variable names, run `npm run types:cloudflare` and
+commit the generated `worker-configuration.d.ts`; never edit it by hand.
+
+## Development
+
+For frontend-only development with hot module replacement:
+
+```sh
+npm run dev
 ```
+
+Cloud API calls require the full Pages runtime:
+
+```sh
+npx wrangler d1 migrations apply DB --local
+npm run dev:full
+```
+
+The full command runs Vite behind `wrangler pages dev`, loads `.dev.vars`, serves
+the `functions/` routes, and connects `DB` to local D1 storage. See
+[docs/D1_MIGRATIONS.md](docs/D1_MIGRATIONS.md) for the append-only migration,
+backup, verification, and recovery procedure.
+
+## Quality checks
+
+```sh
+npm run test:watch       # frontend/engine tests while developing
+npm run test:unit        # frontend/engine tests once
+npm run test:workers     # Pages Functions with isolated migrated D1
+npm run test:coverage    # coverage and configured thresholds
+npm run lint
+npm run typecheck
+npm run build
+npm run check            # required pre-commit gate
+npm audit --audit-level=high
+```
+
+`npm run check` verifies generated types, zero-warning lint, coverage, Workers/D1
+integration tests, every TypeScript project, and the production build. See
+[docs/DEPENDENCY_SECURITY.md](docs/DEPENDENCY_SECURITY.md) for security policy.
+
+## PWA testing
+
+Service workers are generated only for production builds:
+
+```sh
+npm run build
+npm run preview
+```
+
+In a private profile, load the preview, confirm the manifest and service worker
+in developer tools, install the app, then test a reload with the network disabled.
+Clear site data between cache-strategy tests.
+
+## Cloudflare Pages deployment
+
+The intended production setup is a Git-integrated Pages project:
+
+- Root directory: repository root
+- Production branch: `main`
+- Build command: `npm run build`
+- Build output directory: `dist`
+- Functions: repository-root `functions/` (detected automatically)
+- D1 binding: `DB`
+- Build/runtime variable: `CLERK_PUBLIC`
+- Runtime secrets: `CLERK_SECRET` and optionally `CLERK_AUTHORIZED_PARTIES`
+
+Before the first deployment, create D1, update its ID in `wrangler.toml`, and
+configure the Pages binding. Before each production deployment:
+
+```sh
+npm ci
+npm run check
+npm audit --audit-level=high
+npx wrangler d1 migrations list DB --remote
+npx wrangler d1 export DB --remote --output ./infinite-sudoku-backup.sql
+npx wrangler d1 migrations apply DB --remote
+```
+
+Push the verified commit to `main`; Cloudflare builds production automatically.
+Pull requests get preview URLs when preview deployments are enabled. Verify
+sign-in, an authenticated API request, game completion, and PWA loading on the
+preview before merging. Include trusted preview/custom origins in that
+environment's `CLERK_AUTHORIZED_PARTIES`.
+
+For an intentional manual upload instead of Git integration:
+
+```sh
+npm run build
+npx wrangler pages deploy dist --project-name infinite-sudoku
+```
+
+Add `--branch <branch-name>` for a preview. The dashboard remains the source of
+truth for Pages environment bindings until configuration is fully migrated into
+Wrangler configuration.
+
+## Custom domain and rollback
+
+Attach the production hostname under the Pages project's **Custom domains**
+settings and ensure Clerk allows that origin. Cloudflare manages DNS and TLS once
+the domain is active.
+
+To roll back code, open **Workers & Pages → Infinite Sudoku → Deployments**,
+choose a previous successful production deployment, and select **Rollback**.
+Preview deployments cannot be rollback targets. A Pages rollback does not roll
+back D1: migrations are forward-only, so restore the pre-deploy export or ship a
+corrective migration using `docs/D1_MIGRATIONS.md`. Repeat smoke tests afterward.
+
+## Project workflow
+
+`ROADMAP.md` is the implementation plan. Complete one task at a time, verify its
+acceptance criteria with `npm run check`, update its status, and make a focused
+commit. Repository-specific agent guidance is in `AGENTS.md`.

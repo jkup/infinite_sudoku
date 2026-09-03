@@ -1,0 +1,4 @@
+# Safe placeholders only. Copy to .dev.vars and replace locally.
+CLERK_PUBLIC=pk_test_replace_me
+CLERK_SECRET=sk_test_replace_me
+CLERK_AUTHORIZED_PARTIES=http://localhost:5173

@@ -371,6 +371,7 @@ A task is complete when:
 ### OPS-001: Document the complete development and deployment workflow
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Replace the template README with project-specific documentation.
