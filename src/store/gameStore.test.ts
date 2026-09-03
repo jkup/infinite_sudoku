@@ -121,6 +121,18 @@ describe('game store transitions', () => {
     expect(useGameStore.getState().status).toBe('playing');
   });
 
+  it('does not complete a conflict-free grid that differs from the stored solution', () => {
+    const shifted = solution.map((row) => row.map((digit) => (digit === 9 ? 1 : digit + 1) as Digit));
+    const puzzle: Puzzle = { ...makePuzzle(), initial: shifted.map((row) => [...row]), solution };
+    puzzle.initial[0][0] = null;
+    resetGame(puzzle);
+    useGameStore.getState().selectCell({ row: 0, col: 0 });
+    useGameStore.getState().placeDigit(shifted[0][0]);
+
+    expect(useGameStore.getState().conflicts.size).toBe(0);
+    expect(useGameStore.getState().status).toBe('playing');
+  });
+
   it('preserves a manual pause across visibility-driven resume', () => {
     useGameStore.getState().pauseGame();
     useGameStore.getState().autoResume();
@@ -192,7 +204,15 @@ describe('game store transitions', () => {
     useGameStore.getState().newGame('hard', 'killer');
     expect(useGameStore.getState().generationStatus).toBe('loading');
 
-    resolveSecond({ ...makePuzzle(), difficulty: 'hard', mode: 'killer' });
+    const hardPuzzle = makePuzzle();
+    resolveSecond({
+      ...hardPuzzle,
+      difficulty: 'hard',
+      mode: 'killer',
+      cages: solution.flatMap((row, rowIndex) => row.map((digit, colIndex) => ({
+        sum: digit, cells: [{ row: rowIndex, col: colIndex }],
+      }))),
+    });
     await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('idle'));
     resolveFirst(makePuzzle());
     await Promise.resolve();
@@ -208,5 +228,12 @@ describe('game store transitions', () => {
     await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
     expect(useGameStore.getState().generationError).toBe('worker unavailable');
     expect(useGameStore.getState().pendingGameSettings).toEqual({ difficulty: 'expert', mode: 'killer' });
+  });
+
+  it('surfaces the generated difficulty when generation falls back', async () => {
+    mockGeneratePuzzleAsync.mockResolvedValueOnce(makePuzzle());
+    useGameStore.getState().newGame('expert', 'classic');
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('idle'));
+    expect(useGameStore.getState().difficulty).toBe('easy');
   });
 });

@@ -343,6 +343,8 @@ function GameScreen() {
   }, []);
 
   const loadSavedGame = useGameStore((s) => s.loadSavedGame);
+  const recoveryNotice = useGameStore((s) => s.recoveryNotice);
+  const clearRecoveryNotice = useGameStore((s) => s.clearRecoveryNotice);
 
   // Start a game on first load — try restoring a saved game first
   useEffect(() => {
@@ -510,6 +512,13 @@ function GameScreen() {
           </div>
         </div>
         </>
+      )}
+
+      {recoveryNotice && (
+        <div className="fixed top-4 left-1/2 z-50 flex max-w-md -translate-x-1/2 items-center gap-3 rounded-xl px-4 py-3 shadow-lg" style={{ backgroundColor: 'var(--color-card-bg)', color: 'var(--color-text)' }} role="status">
+          <span>{recoveryNotice}</span>
+          <button onClick={clearRecoveryNotice} aria-label="Dismiss recovery notice" className="font-bold">&times;</button>
+        </div>
       )}
 
       {/* Completion overlay — different for hint puzzles vs regular */}

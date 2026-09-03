@@ -1,4 +1,5 @@
 import type { Digit, Grid, Puzzle, GameMode, Difficulty, GameStatus, InputMode, HistoryEntry, CellChange, CellPosition } from '../engine/types';
+import { isPuzzleComplete, isPuzzleDefinitionValid } from '../engine/validator';
 
 const SAVE_KEY = 'infinite-sudoku-save';
 
@@ -71,6 +72,21 @@ function deserializeGrid(data: SerializedGrid): Grid {
       isError: false,
     }))
   );
+}
+
+function isSerializedGridValid(data: unknown, puzzle: Puzzle): data is SerializedGrid {
+  if (!Array.isArray(data) || data.length !== puzzle.gridSize) return false;
+  return data.every((row, rowIndex) => Array.isArray(row) && row.length === puzzle.gridSize
+    && row.every((cell, colIndex) => {
+      if (!cell || typeof cell !== 'object') return false;
+      const value = cell as Partial<SerializedCell>;
+      const validDigit = value.digit === null || (Number.isInteger(value.digit) && value.digit! >= 1 && value.digit! <= puzzle.gridSize);
+      const givenDigit = puzzle.initial[rowIndex][colIndex];
+      return value.row === rowIndex && value.col === colIndex && validDigit
+        && value.isGiven === (givenDigit !== null)
+        && (givenDigit === null || value.digit === givenDigit)
+        && Array.isArray(value.cornerNotes) && Array.isArray(value.centerNotes);
+    }));
 }
 
 function serializeCellChange(c: CellChange): SerializedCellChange {
@@ -159,23 +175,29 @@ export function loadGame(): {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
 
-    const data: SavedGameState = JSON.parse(raw);
+    const data = JSON.parse(raw) as Partial<SavedGameState>;
 
     // Basic validation
-    if (!data.grid || !data.puzzle || !data.puzzle.solution) return null;
-    if (data.grid.length !== 9 && data.grid.length !== 6) return null;
+    if (!data.grid || !data.puzzle || !data.puzzle.solution) throw new Error('Invalid saved game');
 
     const puzzle = {
       ...data.puzzle,
       gridSize: data.puzzle.gridSize ?? 9,
       completionId: data.puzzle.completionId ?? crypto.randomUUID(),
     };
+    if (!isPuzzleDefinitionValid(puzzle) || !isSerializedGridValid(data.grid, puzzle)) throw new Error('Invalid saved game');
+    if (!['playing', 'paused', 'completed'].includes(data.status ?? '')) throw new Error('Invalid saved game');
+    if (!['digit', 'corner', 'center', 'color'].includes(data.inputMode ?? 'digit')) throw new Error('Invalid saved game');
+    if (!Number.isFinite(data.elapsedMs) || data.elapsedMs! < 0) throw new Error('Invalid saved game');
+
+    const grid = deserializeGrid(data.grid);
+    if (data.status === 'completed' && !isPuzzleComplete(grid, puzzle)) throw new Error('Invalid completed save');
 
     return {
-      grid: deserializeGrid(data.grid),
+      grid,
       puzzle,
-      mode: data.mode,
-      difficulty: data.difficulty,
+      mode: puzzle.mode,
+      difficulty: puzzle.difficulty,
       status: data.status === 'completed' ? 'completed' : 'playing', // unpause on reload
       inputMode: data.inputMode ?? 'digit',
       history: deserializeHistory(data.history ?? []),
@@ -183,10 +205,15 @@ export function loadGame(): {
       elapsedMs: data.elapsedMs ?? 0,
     };
   } catch {
+    localStorage.removeItem(SAVE_KEY);
     return null;
   }
 }
 
 export function clearSave(): void {
   localStorage.removeItem(SAVE_KEY);
+}
+
+export function hasSavedGame(): boolean {
+  try { return localStorage.getItem(SAVE_KEY) !== null; } catch { return false; }
 }

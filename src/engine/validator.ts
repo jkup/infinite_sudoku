@@ -1,4 +1,4 @@
-import type { Digit, Grid, CellPosition } from './types';
+import type { Digit, Grid, CellPosition, Puzzle } from './types';
 import { getBoxDimensions } from './types';
 
 export type Conflict = {
@@ -133,6 +133,56 @@ export function isGridComplete(grid: Grid): boolean {
 
   // No conflicts
   return findConflicts(grid).size === 0;
+}
+
+/** Validate the immutable puzzle contract before play or ranked completion. */
+export function isPuzzleDefinitionValid(puzzle: Puzzle): boolean {
+  const size = puzzle.gridSize;
+  if (!['classic', 'killer'].includes(puzzle.mode) || !['easy', 'medium', 'hard', 'expert'].includes(puzzle.difficulty)) return false;
+  if ((size !== 6 && size !== 9) || puzzle.initial.length !== size || puzzle.solution.length !== size) return false;
+  const digits = new Set(Array.from({ length: size }, (_, index) => index + 1));
+  for (let row = 0; row < size; row++) {
+    if (puzzle.initial[row]?.length !== size || puzzle.solution[row]?.length !== size) return false;
+    for (let col = 0; col < size; col++) {
+      const solved = puzzle.solution[row][col];
+      const initial = puzzle.initial[row][col];
+      if (!digits.has(solved) || (initial !== null && initial !== solved)) return false;
+    }
+  }
+  if (!isGridComplete(gridFromDigits(puzzle.solution))) return false;
+  if (puzzle.mode === 'classic') return puzzle.cages === undefined || puzzle.cages.length === 0;
+  if (!puzzle.cages?.length) return false;
+
+  const covered = new Set<string>();
+  for (const cage of puzzle.cages) {
+    if (!Number.isInteger(cage.sum) || cage.sum <= 0 || cage.cells.length === 0) return false;
+    let sum = 0;
+    for (const cell of cage.cells) {
+      if (!Number.isInteger(cell.row) || !Number.isInteger(cell.col)
+        || cell.row < 0 || cell.col < 0 || cell.row >= size || cell.col >= size) return false;
+      const key = `${cell.row},${cell.col}`;
+      if (covered.has(key)) return false;
+      covered.add(key);
+      sum += puzzle.solution[cell.row][cell.col];
+    }
+    if (sum !== cage.sum) return false;
+  }
+  return covered.size === size * size;
+}
+
+/** Completion requires the canonical solution and all puzzle metadata to agree. */
+export function isPuzzleComplete(grid: Grid, puzzle: Puzzle): boolean {
+  if (!isPuzzleDefinitionValid(puzzle) || grid.length !== puzzle.gridSize) return false;
+  return grid.every((row, rowIndex) => row.length === puzzle.gridSize && row.every(
+    (cell, colIndex) => cell.digit === puzzle.solution[rowIndex][colIndex],
+  ));
+}
+
+function gridFromDigits(values: Digit[][]): Grid {
+  return values.map((row, rowIndex) => row.map((digit, colIndex) => ({
+    position: { row: rowIndex, col: colIndex }, digit, isGiven: false,
+    cornerNotes: new Set<Digit>(), centerNotes: new Set<Digit>(), colorIndex: null, isError: false,
+  })));
 }
 
 /**

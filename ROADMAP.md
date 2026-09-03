@@ -329,6 +329,7 @@ A task is complete when:
 ### GAME-004: Enforce complete puzzle invariants
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Make completion verify the stored solution or prove all applicable constraints, including killer cages.

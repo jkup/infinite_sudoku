@@ -44,8 +44,33 @@ describe('game persistence', () => {
   it('returns null for malformed or unsupported saved data', () => {
     localStorage.setItem('infinite-sudoku-save', '{bad json');
     expect(loadGame()).toBeNull();
+    expect(localStorage.getItem('infinite-sudoku-save')).toBeNull();
     localStorage.setItem('infinite-sudoku-save', JSON.stringify({ grid: [], puzzle }));
     expect(loadGame()).toBeNull();
+  });
+
+  it('discards a save whose givens were altered', () => {
+    saveGame({
+      grid: gridFromValues(puzzle.initial, true), puzzle, mode: 'classic', difficulty: 'easy',
+      status: 'playing', inputMode: 'digit', history: [], historyIndex: -1, elapsedMs: 0,
+    });
+    const raw = JSON.parse(localStorage.getItem('infinite-sudoku-save')!);
+    raw.grid[0][1].digit = solution[0][2];
+    localStorage.setItem('infinite-sudoku-save', JSON.stringify(raw));
+
+    expect(loadGame()).toBeNull();
+    expect(localStorage.getItem('infinite-sudoku-save')).toBeNull();
+  });
+
+  it('uses canonical puzzle metadata instead of stale saved labels', () => {
+    saveGame({
+      grid: gridFromValues(puzzle.initial, true), puzzle, mode: 'classic', difficulty: 'easy',
+      status: 'playing', inputMode: 'digit', history: [], historyIndex: -1, elapsedMs: 0,
+    });
+    const raw = JSON.parse(localStorage.getItem('infinite-sudoku-save')!);
+    raw.difficulty = 'expert';
+    localStorage.setItem('infinite-sudoku-save', JSON.stringify(raw));
+    expect(loadGame()?.difficulty).toBe('easy');
   });
 
   it('migrates legacy flat history entries into grouped changes', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { findConflicts, getDigitCounts, getPeers, isGridComplete } from './validator';
+import { findConflicts, getDigitCounts, getPeers, isGridComplete, isPuzzleComplete, isPuzzleDefinitionValid } from './validator';
 import { gridFromValues } from './types';
-import type { Digit } from './types';
+import type { Digit, Puzzle } from './types';
 
 const SOLVED_9: Digit[][] = [
   [5, 3, 4, 6, 7, 8, 9, 1, 2],
@@ -39,5 +39,28 @@ describe('Sudoku validation', () => {
   it('counts placed digits', () => {
     const grid = gridFromValues(SOLVED_9, false);
     expect([...getDigitCounts(grid).values()]).toEqual(Array(9).fill(9));
+  });
+
+  it('requires the canonical solution, not merely a conflict-free full grid', () => {
+    const puzzle: Puzzle = {
+      initial: SOLVED_9.map((row) => row.map(() => null)), solution: SOLVED_9,
+      difficulty: 'easy', mode: 'classic', gridSize: 9,
+    };
+    const shifted = SOLVED_9.map((row) => row.map((digit) => (digit === 9 ? 1 : digit + 1) as Digit));
+    expect(isGridComplete(gridFromValues(shifted, false))).toBe(true);
+    expect(isPuzzleComplete(gridFromValues(shifted, false), puzzle)).toBe(false);
+  });
+
+  it('rejects killer definitions with missing, overlapping, or incorrect cages', () => {
+    const cages = SOLVED_9.flatMap((row, rowIndex) => row.map((digit, colIndex) => ({
+      sum: digit, cells: [{ row: rowIndex, col: colIndex }],
+    })));
+    const puzzle: Puzzle = {
+      initial: SOLVED_9.map((row) => row.map(() => null)), solution: SOLVED_9,
+      difficulty: 'easy', mode: 'killer', gridSize: 9, cages,
+    };
+    expect(isPuzzleDefinitionValid(puzzle)).toBe(true);
+    expect(isPuzzleDefinitionValid({ ...puzzle, cages: cages.slice(1) })).toBe(false);
+    expect(isPuzzleDefinitionValid({ ...puzzle, cages: [{ ...cages[0], sum: cages[0].sum + 1 }, ...cages.slice(1)] })).toBe(false);
   });
 });

@@ -13,9 +13,9 @@ import type {
 } from '../engine/types';
 import { gridFromValues, getDigitsForSize } from '../engine/types';
 import { generatePuzzleAsync } from '../engine/generateAsync';
-import { findConflicts, getPeers } from '../engine/validator';
+import { findConflicts, getPeers, isPuzzleComplete, isPuzzleDefinitionValid } from '../engine/validator';
 import { getCageForCell } from '../engine/killer';
-import { saveGame, loadGame } from '../lib/persistence';
+import { saveGame, loadGame, hasSavedGame } from '../lib/persistence';
 import { postGameResult } from '../lib/api';
 
 export type SessionPhase = 'generating' | 'playing' | 'paused' | 'completed' | 'failed' | 'nested-hint';
@@ -51,6 +51,7 @@ type GameState = {
   pendingGameSettings: { difficulty: Difficulty; mode: GameMode } | null;
   sessionPhase: SessionPhase;
   sessionKind: SessionKind;
+  recoveryNotice: string | null;
 
   // Selection
   selectedCell: CellPosition | null;
@@ -91,6 +92,7 @@ type GameState = {
   incrementHintsUsed: () => void;
   captureSession: () => GameSessionSnapshot | null;
   replaceSession: (snapshot: GameSessionSnapshot, kind: SessionKind, selectedCell?: CellPosition | null) => void;
+  clearRecoveryNotice: () => void;
 };
 
 function updateConflicts(grid: Grid): Map<string, CellPosition[]> {
@@ -241,16 +243,6 @@ function restoreNotesOnRemoval(
   return changes;
 }
 
-function checkCompletion(grid: Grid): boolean {
-  const size = grid.length;
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (grid[r][c].digit === null) return false;
-    }
-  }
-  return findConflicts(grid).size === 0;
-}
-
 /** Fire-and-forget cloud save when a game completes */
 function saveToCloud(state: {
   completionId: string;
@@ -296,6 +288,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   pendingGameSettings: null,
   sessionPhase: 'playing',
   sessionKind: 'game',
+  recoveryNotice: null,
   selectedCell: null,
   inputMode: 'digit',
   history: [],
@@ -320,13 +313,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     generatePuzzleAsync(difficulty, mode).then((puzzle) => {
       if (requestId !== latestGameRequestId) return;
+      if (!isPuzzleDefinitionValid(puzzle)) throw new Error('Puzzle generation returned invalid data');
       const grid = gridFromValues(puzzle.initial, true);
 
       set({
         grid,
         puzzle: { ...puzzle, completionId: crypto.randomUUID() },
-        mode,
-        difficulty,
+        mode: puzzle.mode,
+        difficulty: puzzle.difficulty,
         status: 'playing',
         generationStatus: 'idle',
         generationError: null,
@@ -436,7 +430,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     changes.unshift(primaryChange);
 
     const conflicts = updateConflicts(newGrid);
-    const isComplete = target.digit !== null && checkCompletion(newGrid);
+    const isComplete = target.digit !== null && get().puzzle !== null && isPuzzleComplete(newGrid, get().puzzle!);
 
     // Track errors: if the placed digit creates a conflict, count it
     const cellKey = `${row},${col}`;
@@ -688,8 +682,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   loadSavedGame: () => {
+    const hadSave = hasSavedGame();
     const saved = loadGame();
-    if (!saved) return false;
+    if (!saved) {
+      if (hadSave) set({ recoveryNotice: 'Your previous game could not be restored, so a fresh puzzle was started.' });
+      return false;
+    }
 
     stopTimer(set);
 
@@ -761,7 +759,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     const conflicts = updateConflicts(newGrid);
-    const isComplete = checkCompletion(newGrid);
+    const isComplete = get().puzzle !== null && isPuzzleComplete(newGrid, get().puzzle!);
 
     set({
       grid: newGrid,
@@ -840,6 +838,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
     if (snapshot.status === 'playing') startTimer(set, get, snapshot.elapsedMs);
   },
+
+  clearRecoveryNotice: () => set({ recoveryNotice: null }),
 }));
 
 // Auto-save on every state change (debounced slightly)
