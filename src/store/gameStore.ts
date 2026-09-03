@@ -17,7 +17,7 @@ import { findConflicts, getPeers, isPuzzleComplete, isPuzzleDefinitionValid } fr
 import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame, hasSavedGame } from '../lib/persistence';
 import { postGameResult } from '../lib/api';
-import { getQueuedCompletion, queueCompletion, removeQueuedCompletion, type QueuedCompletion } from '../lib/completionQueue';
+import { getQueuedCompletion, getQueuedCompletions, queueCompletion, removeQueuedCompletion, type QueuedCompletion } from '../lib/completionQueue';
 
 export type SessionPhase = 'generating' | 'playing' | 'paused' | 'completed' | 'failed' | 'nested-hint';
 export type SessionKind = 'game' | 'hint' | 'tutorial';
@@ -851,10 +851,28 @@ export const useGameStore = create<GameState>((set, get) => ({
   clearRecoveryNotice: () => set({ recoveryNotice: null }),
 
   retryCompletion: () => {
-    const completionId = get().submittedCompletionId ?? get().puzzle?.completionId;
-    if (!completionId) return;
-    const completion = getQueuedCompletion(completionId);
-    if (completion) syncCompletion(completion, set);
+    const queued = getQueuedCompletions();
+    if (queued.length === 0) return;
+    set({ completionSyncStatus: 'syncing', completionSyncError: null });
+    void (async () => {
+      for (const completion of queued) {
+        try {
+          await postGameResult(completion);
+          removeQueuedCompletion(completion.completionId);
+        } catch (error: unknown) {
+          const correlationId = error && typeof error === 'object' && 'correlationId' in error
+            ? String(error.correlationId) : null;
+          set({
+            completionSyncStatus: 'pending',
+            completionSyncError: correlationId
+              ? `Stats not synced. Reference: ${correlationId}`
+              : 'Stats not synced. Check your connection and retry.',
+          });
+          return;
+        }
+      }
+      set({ completionSyncStatus: 'synced', completionSyncError: null });
+    })();
   },
 }));
 

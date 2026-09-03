@@ -1,6 +1,11 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      'virtual:pwa-register': new URL('./src/test/pwaRegisterMock.ts', import.meta.url).pathname,
+    },
+  },
   test: {
     environment: 'node',
     setupFiles: ['./src/test/setup.ts'],

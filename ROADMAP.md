@@ -451,6 +451,7 @@ A task is complete when:
 ### OPS-005: Audit PWA update and offline behavior
 
 **Priority:** P2
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Test first install, repeat visit, offline gameplay, update discovery, and recovery from a bad/stale service worker.

@@ -23,6 +23,7 @@ import StatsPanel from './components/stats/StatsPanel';
 import TutorialList from './components/tutorial/TutorialList';
 import TutorialLesson from './components/tutorial/TutorialLesson';
 import { setAuthTokenGetter } from './lib/api';
+import PwaLifecycle from './components/ui/PwaLifecycle';
 
 // Check both names: VITE_CLERK_PUBLISHABLE_KEY (local dev) and CLERK_PUBLIC (Cloudflare production)
 const CLERK_KEY = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.CLERK_PUBLIC) as string | undefined;
@@ -634,19 +635,23 @@ function AuthTokenBridge() {
   const { getToken } = useClerkAuth();
   useEffect(() => {
     setAuthTokenGetter(() => getToken());
+    useGameStore.getState().retryCompletion();
   }, [getToken]);
   return null;
 }
 
 export default function App() {
   const router = (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<GameScreen />} />
-        <Route path="/sign-in" element={<SignInPage />} />
-        <Route path="/sign-up" element={<SignUpPage />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <PwaLifecycle />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<GameScreen />} />
+          <Route path="/sign-in" element={<SignInPage />} />
+          <Route path="/sign-up" element={<SignUpPage />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   );
 
   // Graceful fallback: if no Clerk key, render without auth

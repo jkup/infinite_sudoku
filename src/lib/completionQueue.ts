@@ -35,6 +35,10 @@ export function getQueuedCompletion(completionId: string): QueuedCompletion | nu
   return readQueue().find((item) => item.completionId === completionId) ?? null;
 }
 
+export function getQueuedCompletions(): QueuedCompletion[] {
+  return readQueue();
+}
+
 export function removeQueuedCompletion(completionId: string): void {
   writeQueue(readQueue().filter((item) => item.completionId !== completionId));
 }
