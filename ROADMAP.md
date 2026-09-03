@@ -391,6 +391,7 @@ A task is complete when:
 ### OPS-002: Modernize and validate Cloudflare configuration
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Scope**
 
 - Review and update `compatibility_date` using current Cloudflare guidance and tests.

@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     cloudflareTest(async () => ({
       miniflare: {
-        compatibilityDate: '2024-01-01',
+        compatibilityDate: '2026-09-03',
         compatibilityFlags: ['nodejs_compat'],
         d1Databases: ['DB'],
         serviceBindings: {

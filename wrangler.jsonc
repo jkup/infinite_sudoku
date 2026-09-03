@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "infinite-sudoku",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+      "persist": true
+    }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "infinite-sudoku-db",
+      "database_id": "68b7f65b-1dda-4b53-8bbd-b26d43814ecb",
+      "migrations_dir": "db/migrations"
+    }
+  ],
+  "env": {
+    "preview": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "infinite-sudoku-preview",
+          "database_id": "26378ff5-69a1-42f5-af28-17d7e5030cc2",
+          "migrations_dir": "db/migrations"
+        }
+      ]
+    }
+  }
+}

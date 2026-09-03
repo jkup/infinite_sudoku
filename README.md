@@ -45,10 +45,10 @@ Replace the placeholders in `.dev.vars` for local Pages development:
 | `VITE_CLERK_PUBLISHABLE_KEY` | Vite-only development, optional | Alternative key for `npm run dev` |
 | `DB` | Wrangler/Pages binding | D1 database used by Pages Functions |
 
-`wrangler.toml` declares the local `DB` binding and migration directory. In the
-Pages dashboard, configure a D1 binding named exactly `DB` for preview and
-production, and configure Clerk separately per environment. Use test Clerk keys
-and a non-production D1 database for previews.
+`wrangler.jsonc` is the schema-validated Pages configuration source of truth. It
+binds production to `infinite-sudoku-db` and the named `preview` environment to
+`infinite-sudoku-preview`, both as `DB`. Configure Clerk separately per
+environment and use test Clerk keys for previews.
 
 After changing bindings or variable names, run `npm run types:cloudflare` and
 commit the generated `worker-configuration.d.ts`; never edit it by hand.
@@ -142,9 +142,22 @@ npm run build
 npx wrangler pages deploy dist --project-name infinite-sudoku
 ```
 
-Add `--branch <branch-name>` for a preview. The dashboard remains the source of
-truth for Pages environment bindings until configuration is fully migrated into
-Wrangler configuration.
+Add `--branch <branch-name>` for a preview and select the configured preview
+environment where the deployment workflow supports named environments.
+
+### Runtime policy and logs
+
+`nodejs_compat` is enabled because Clerk's backend SDK uses Node-compatible
+runtime APIs; the Workers integration suite exercises that exact compatibility
+date and flag. Persisted invocation logs are sampled at 100% for the app's
+expected low traffic and traces at 10%. Query strings are redacted. Application
+logging must never include authorization headers, Clerk tokens, request bodies,
+or D1 row contents.
+
+Authentication-sensitive `/api/*` routes fail closed in `functions/_middleware.ts`:
+missing configuration, invalid tokens, and Clerk verification errors all return
+401 without invoking an API handler. Non-API asset requests remain available if
+authentication is unavailable. Tests enforce this boundary.
 
 ## Custom domain and rollback
 

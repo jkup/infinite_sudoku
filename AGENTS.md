@@ -22,7 +22,7 @@
 ## Cloudflare and D1
 
 - `worker-configuration.d.ts` is generated. Never hand-edit it. After changing
-  `wrangler.toml`, bindings, or environment-variable names, run
+  `wrangler.jsonc`, bindings, or environment-variable names, run
   `npm run types:cloudflare` and commit the exact generated output.
 - `db/migrations/` is the only schema source of truth. Applied migrations are
   append-only: create the next numbered migration instead of editing an existing
