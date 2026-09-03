@@ -23,6 +23,12 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
 }
 
+.sudoku-cell:focus-visible {
+  outline: 3px solid var(--color-text);
+  outline-offset: -3px;
+  z-index: 30;
+}
+
 /* ===== Theme Custom Properties ===== */
 
 /* Light theme (default) */

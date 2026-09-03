@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useHintStore } from '../../store/hintStore';
 import { useTutorialStore, getTutorialById } from '../../store/tutorialStore';
@@ -10,6 +10,7 @@ import Cell from './Cell';
 import CageOverlay from './CageOverlay';
 
 export default function Board() {
+  const boardRef = useRef<HTMLDivElement>(null);
   const grid = useGameStore((s) => s.grid);
   const selectedCell = useGameStore((s) => s.selectedCell);
   const conflicts = useGameStore((s) => s.conflicts);
@@ -51,9 +52,7 @@ export default function Board() {
     return labels;
   }, [isKiller, puzzle, gridSize]);
 
-  if (grid.length === 0) return null;
-
-  const selectedDigit = selectedCell
+  const selectedDigit = gridSize > 0 && selectedCell
     ? grid[selectedCell.row][selectedCell.col].digit
     : null;
 
@@ -78,12 +77,46 @@ export default function Board() {
     selectCell(pos);
   };
 
+  const handleFocus = (pos: CellPosition) => {
+    selectCell(pos);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>, pos: CellPosition) => {
+    const max = gridSize - 1;
+    let next: CellPosition | null = null;
+
+    switch (event.key) {
+      case 'ArrowUp': next = { row: Math.max(0, pos.row - 1), col: pos.col }; break;
+      case 'ArrowDown': next = { row: Math.min(max, pos.row + 1), col: pos.col }; break;
+      case 'ArrowLeft': next = { row: pos.row, col: Math.max(0, pos.col - 1) }; break;
+      case 'ArrowRight': next = { row: pos.row, col: Math.min(max, pos.col + 1) }; break;
+      case 'Home': next = event.ctrlKey ? { row: 0, col: 0 } : { row: pos.row, col: 0 }; break;
+      case 'End': next = event.ctrlKey ? { row: max, col: max } : { row: pos.row, col: max }; break;
+    }
+
+    if (next) {
+      event.preventDefault();
+      event.stopPropagation();
+      selectCell(next);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedCell || !boardRef.current?.contains(document.activeElement)) return;
+    boardRef.current
+      .querySelector<HTMLElement>(`[data-cell="${selectedCell.row},${selectedCell.col}"]`)
+      ?.focus();
+  }, [selectedCell]);
+
+  if (grid.length === 0) return null;
+
   return (
     <div
       className="relative w-full max-w-[min(98vw,500px)] mx-auto"
       style={{ containerType: 'inline-size', border: '2px solid var(--color-board-border)', overflow: 'hidden' }}
     >
       <div
+        ref={boardRef}
         className="grid"
         style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
         role="grid"
@@ -105,6 +138,7 @@ export default function Board() {
               key={key}
               cell={cell}
               isSelected={isSelected}
+              isTabStop={isSelected || (selectedCell === null && row === 0 && col === 0)}
               isHighlighted={isHighlighted(row, col)}
               isDigitMatch={isDigitMatch(row, col)}
               isConflict={isConflict}
@@ -114,6 +148,8 @@ export default function Board() {
               cageSum={cageLabels.get(`${row},${col}`) ?? null}
               gridSize={gridSize}
               onPointerDown={handlePointerDown}
+              onFocus={handleFocus}
+              onKeyDown={handleKeyDown}
             />
           );
         })}

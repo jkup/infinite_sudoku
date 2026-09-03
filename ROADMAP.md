@@ -476,6 +476,7 @@ a reload with identical state and no application errors (2026-09-03).
 ### A11Y-001: Implement a fully keyboard-operable Sudoku grid
 
 **Priority:** P1
+**Status:** Complete (2026-09-03)
 **Why:** Cells currently use pointer-driven `div` elements, and no cell is tabbable before selection.
 
 **Scope**

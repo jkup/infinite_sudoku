@@ -34,25 +34,6 @@ export function useKeyboard(onToggleHelp?: () => void) {
         return;
       }
 
-      // Arrow keys — navigate cells
-      if (e.key.startsWith('Arrow') && state.selectedCell) {
-        e.preventDefault();
-        const { row, col } = state.selectedCell;
-        const maxIdx = gridSize - 1;
-        let newRow = row;
-        let newCol = col;
-
-        switch (e.key) {
-          case 'ArrowUp':    newRow = Math.max(0, row - 1); break;
-          case 'ArrowDown':  newRow = Math.min(maxIdx, row + 1); break;
-          case 'ArrowLeft':  newCol = Math.max(0, col - 1); break;
-          case 'ArrowRight': newCol = Math.min(maxIdx, col + 1); break;
-        }
-
-        state.selectCell({ row: newRow, col: newCol });
-        return;
-      }
-
       // Backspace / Delete — erase
       if (e.key === 'Backspace' || e.key === 'Delete') {
         state.eraseCell();

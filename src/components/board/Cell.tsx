@@ -1,10 +1,11 @@
-import { memo, type CSSProperties } from 'react';
+import { memo, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import type { Cell as CellType, CellPosition, Digit } from '../../engine/types';
 import { getBoxDimensions, getDigitsForSize } from '../../engine/types';
 
 type CellProps = {
   cell: CellType;
   isSelected: boolean;
+  isTabStop: boolean;
   isHighlighted: boolean;
   isDigitMatch: boolean;
   isConflict: boolean;
@@ -14,6 +15,8 @@ type CellProps = {
   cageSum: number | null;
   gridSize: number;
   onPointerDown: (pos: CellPosition) => void;
+  onFocus: (pos: CellPosition) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>, pos: CellPosition) => void;
 };
 
 /**
@@ -33,7 +36,7 @@ const NOTE_GRID: Record<Digit, { gridRow: number; gridCol: number }> = {
   9: { gridRow: 3, gridCol: 3 },
 };
 
-function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConflict, isHintReveal, isTutorialTarget, isKillerMode, cageSum, gridSize, onPointerDown }: CellProps) {
+function CellComponent({ cell, isSelected, isTabStop, isHighlighted, isDigitMatch, isConflict, isHintReveal, isTutorialTarget, isKillerMode, cageSum, gridSize, onPointerDown, onFocus, onKeyDown }: CellProps) {
   const { position, digit, isGiven, cornerNotes, centerNotes } = cell;
   const { row, col } = position;
   const { boxRows, boxCols } = getBoxDimensions(gridSize);
@@ -78,24 +81,32 @@ function CellComponent({ cell, isSelected, isHighlighted, isDigitMatch, isConfli
 
   const hasNotes = cornerNotes.size > 0 || centerNotes.size > 0;
 
-  const notesLabel = cornerNotes.size > 0
-    ? `, notes ${[...cornerNotes].sort().join(' ')}`
-    : centerNotes.size > 0
-    ? `, center notes ${[...centerNotes].sort().join(' ')}`
-    : '';
+  const notesLabel = [
+    cornerNotes.size > 0 ? `corner notes ${[...cornerNotes].sort().join(' ')}` : '',
+    centerNotes.size > 0 ? `center notes ${[...centerNotes].sort().join(' ')}` : '',
+  ].filter(Boolean).map((notes) => `, ${notes}`).join('');
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.focus();
+    onPointerDown(position);
+  };
 
   return (
     <div
-      className={`relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none${isHintReveal ? ' hint-reveal' : ''}`}
+      className={`sudoku-cell relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none${isHintReveal ? ' hint-reveal' : ''}`}
       style={borderStyle}
-      onPointerDown={() => onPointerDown(position)}
-      tabIndex={isSelected ? 0 : -1}
+      data-cell={`${row},${col}`}
+      onPointerDown={handlePointerDown}
+      onFocus={() => onFocus(position)}
+      onKeyDown={(event) => onKeyDown(event, position)}
+      tabIndex={isTabStop ? 0 : -1}
       role="gridcell"
       aria-selected={isSelected}
+      aria-readonly={isGiven}
       aria-invalid={isConflict || undefined}
       aria-label={`Row ${row + 1}, Column ${col + 1}${
         digit ? `, value ${digit}` : ', empty'
-      }${notesLabel}${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
+      }, ${isGiven ? 'given' : 'editable'}${isConflict ? ', conflict' : ''}${notesLabel}${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
     >
       {/* Killer cage sum label */}
       {cageSum !== null && (
