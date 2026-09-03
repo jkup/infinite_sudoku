@@ -30,3 +30,21 @@
   and recovery.
 - Keep secrets in Cloudflare secrets or ignored `.dev.vars` files. Never commit
   secret values or production database exports.
+
+## Current session handoff
+
+- Twenty of the 31 roadmap tasks are complete. The next task is `A11Y-001`:
+  implement a fully keyboard-operable Sudoku grid. No implementation changes for
+  this task have been made yet.
+- At the start of the next session, the user intends to say “try the incognito
+  test!” Use the browser-control skill to connect specifically to Chrome and
+  inspect the already-open incognito tab at `http://localhost:4173`.
+- The ChatGPT browser extension is installed and allowed in incognito. Its side
+  panel does not need to be prompted; Codex should control the page directly.
+- The previous connection attempt failed before browser discovery with
+  `Browser use requires a trusted Node REPL browser service`. The user is
+  restarting Codex to provision that service. If it still fails, follow the
+  browser skill's Chrome/bootstrap troubleshooting instructions before asking
+  the user to change more settings.
+- The intended browser check is the outstanding hands-on verification after
+  `OPS-005`, followed by implementation of `A11Y-001` in the roadmap order.
