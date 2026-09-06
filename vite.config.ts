@@ -61,4 +61,10 @@ export default defineConfig({
   define: {
     'import.meta.env.CLERK_PUBLIC': JSON.stringify(getClerkPublicKey()),
   },
+  server: {
+    // Set by scripts/dev-full.mjs: route API calls to the local Pages Functions.
+    proxy: process.env.PAGES_PORT
+      ? { '/api': { target: `http://localhost:${process.env.PAGES_PORT}`, changeOrigin: false } }
+      : undefined,
+  },
 })

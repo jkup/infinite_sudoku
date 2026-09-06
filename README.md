@@ -68,8 +68,11 @@ npx wrangler d1 migrations apply DB --local
 npm run dev:full
 ```
 
-The full command runs Vite behind `wrangler pages dev`, loads `.dev.vars`, serves
-the `functions/` routes, and connects `DB` to local D1 storage. See
+The full command starts Vite with HMR at http://localhost:5173 and a
+`wrangler pages dev` process on port 8788 that runs the `functions/` routes,
+loads `.dev.vars`, and connects `DB` to local D1 storage. Vite proxies `/api`
+to it, so open the Vite URL. Override ports with `VITE_PORT` and `PAGES_PORT`;
+Ctrl-C stops both processes. See
 [docs/D1_MIGRATIONS.md](docs/D1_MIGRATIONS.md) for the append-only migration,
 backup, verification, and recovery procedure.
 

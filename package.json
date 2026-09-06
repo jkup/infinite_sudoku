@@ -21,7 +21,7 @@
     "test:pwa": "node scripts/verify-pwa.mjs",
     "check": "npm run types:check && npm run lint -- --max-warnings=0 && npm run test:coverage && npm run test:workers && npm run build && npm run test:pwa",
     "preview": "vite preview",
-    "dev:full": "wrangler pages dev -- vite",
+    "dev:full": "node scripts/dev-full.mjs",
     "daily:generate": "tsx scripts/generate-daily.ts"
   },
   "dependencies": {
