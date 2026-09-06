@@ -33,11 +33,22 @@ export type UserStats = {
 };
 
 export type LeaderboardEntry = {
-  clerkUserId: string;
+  rank: number;
+  displayName: string | null;
   score: number;
   solveTimeMs: number;
   difficulty: string;
   completedAt: string;
+  isYou: boolean;
+};
+
+export type LeaderboardResponse = {
+  date: string;
+  mode: GameMode;
+  entries: LeaderboardEntry[];
+  /** The caller's own standing, present even when outside the listed entries. */
+  you: { rank: number; score: number; solveTimeMs: number } | null;
+  totalEntries: number;
 };
 
 /** Token getter injected by the React layer (see AuthTokenProvider) */
@@ -106,11 +117,10 @@ export async function getStats(): Promise<UserStats | null> {
   return res.json();
 }
 
-export async function getLeaderboard(
-  date: string,
-  mode: GameMode
-): Promise<LeaderboardEntry[]> {
-  const res = await authFetch(`/api/leaderboard?date=${date}&mode=${mode}`);
-  if (!res.ok) return [];
+/** Ranked results for one daily puzzle; throws ApiError on failure. */
+export async function getLeaderboard(date: string, mode: GameMode): Promise<LeaderboardResponse> {
+  const params = new URLSearchParams({ date, mode });
+  const res = await authFetch(`/api/leaderboard?${params}`);
+  if (!res.ok) throw new ApiError(res.status, res.headers.get('X-Request-ID'));
   return res.json();
 }

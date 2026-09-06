@@ -25,6 +25,8 @@ import Confetti from './components/ui/Confetti';
 import UserButton from './components/auth/UserButton';
 import StatsPanel from './components/stats/StatsPanel';
 import ScoreSummary from './components/stats/ScoreSummary';
+import Leaderboard from './components/stats/Leaderboard';
+import { utcDateString } from './lib/daily';
 import TutorialList from './components/tutorial/TutorialList';
 import TutorialLesson from './components/tutorial/TutorialLesson';
 import { setAuthTokenGetter } from './lib/api';
@@ -71,6 +73,7 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   const { ref, triggerRef, id } = usePopup(open ? 'settings' : showStats ? 'stats' : false, () => { setOpen(false); setShowStats(false); });
   const checkAnswers = usePreferencesStore((s) => s.checkAnswers);
   const setCheckAnswers = usePreferencesStore((s) => s.setCheckAnswers);
+  const mode = useGameStore((s) => s.mode);
 
   return (
     <div className="relative" ref={ref}>
@@ -196,7 +199,12 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
           >
             <button onClick={() => setShowStats(false)} aria-label="Close statistics">Close</button>
             {CLERK_KEY ? (
-              <StatsPanel />
+              <>
+                <StatsPanel />
+                <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--color-cell-border)' }}>
+                  <Leaderboard date={utcDateString()} mode={mode} />
+                </div>
+              </>
             ) : (
               <div className="text-center text-sm py-4" style={{ color: 'var(--color-text-muted)' }}>
                 Sign in to track your stats across devices.
@@ -600,6 +608,11 @@ function GameScreen() {
                 : `Great job solving this ${difficulty} ${mode} puzzle!`}
             </p>
             <ScoreSummary />
+            {puzzle.daily && CLERK_KEY && (
+              <div className="mb-4">
+                <Leaderboard date={puzzle.daily.date} mode={mode} refreshKey={completionSyncStatus} />
+              </div>
+            )}
             <div className="mb-4 text-sm" aria-live="polite" style={{ color: 'var(--color-text-muted)' }}>
               {completionSyncStatus === 'syncing' && <p>Syncing stats…</p>}
               {completionSyncStatus === 'synced' && <p>Stats synced.</p>}

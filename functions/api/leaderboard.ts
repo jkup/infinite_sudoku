@@ -2,7 +2,10 @@
 // Entries carry cached display names only; Clerk user IDs never leave the server.
 
 import type { GameMode } from '../../src/engine/types';
+import type { LeaderboardEntry, LeaderboardResponse } from '../../src/lib/api';
 import { DAILY_MODES, isDailyDate } from '../../src/lib/daily';
+
+export type { LeaderboardEntry, LeaderboardResponse };
 
 const LIMIT = 50;
 
@@ -17,25 +20,6 @@ type RankedRow = {
   solve_time_ms: number;
   difficulty: string;
   completed_at: string;
-};
-
-export type LeaderboardEntry = {
-  rank: number;
-  displayName: string | null;
-  score: number;
-  solveTimeMs: number;
-  difficulty: string;
-  completedAt: string;
-  isYou: boolean;
-};
-
-export type LeaderboardResponse = {
-  date: string;
-  mode: GameMode;
-  entries: LeaderboardEntry[];
-  /** The caller's own standing, present even when outside the listed entries. */
-  you: { rank: number; score: number; solveTimeMs: number } | null;
-  totalEntries: number;
 };
 
 function validationError(message: string): Response {
