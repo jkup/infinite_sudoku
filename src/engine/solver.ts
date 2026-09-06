@@ -10,11 +10,11 @@ export const Technique = {
   PointingPair: 3,     // Candidates in a box aligned in a row/col
   BoxLineReduction: 3, // Candidates in a row/col confined to one box
   NakedPair: 4,        // Two cells in a unit with same two candidates
-  HiddenPair: 4,       // Two candidates only appear in two cells of a unit
-  NakedTriple: 4,      // Three cells in a unit sharing three candidates
-  XWing: 5,            // Two rows where a digit appears in exactly the same two columns
-  Swordfish: 5,        // Three rows where a digit appears in same three columns
-  YWing: 5,            // Bent triple chain elimination
+  HiddenPair: 5,       // Two candidates only appear in two cells of a unit
+  NakedTriple: 5,      // Three cells in a unit sharing three candidates
+  XWing: 6,            // Two rows where a digit appears in exactly the same two columns
+  Swordfish: 6,        // Three rows where a digit appears in same three columns
+  YWing: 6,            // Bent triple chain elimination
 } as const;
 
 export type SolveResult = {
@@ -701,6 +701,8 @@ export function hasUniqueSolution(puzzle: (Digit | null)[][]): boolean {
 export function techniqueToDifficulty(
   maxTechnique: number
 ): 'easy' | 'medium' | 'hard' | 'expert' {
+  // Levels must be strictly increasing across these bands, or a band becomes
+  // unreachable (hard was, when NakedTriple shared NakedPair's level).
   if (maxTechnique <= Technique.HiddenSingle) return 'easy';
   if (maxTechnique <= Technique.NakedPair) return 'medium';
   if (maxTechnique <= Technique.NakedTriple) return 'hard';

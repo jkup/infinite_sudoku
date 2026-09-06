@@ -34,7 +34,10 @@ describe('solver', () => {
   it('maps technique levels to public difficulties', () => {
     expect(techniqueToDifficulty(Technique.HiddenSingle)).toBe('easy');
     expect(techniqueToDifficulty(Technique.PointingPair)).toBe('medium');
-    expect(techniqueToDifficulty(Technique.NakedTriple)).toBe('medium');
+    expect(techniqueToDifficulty(Technique.NakedPair)).toBe('medium');
+    expect(techniqueToDifficulty(Technique.HiddenPair)).toBe('hard');
+    expect(techniqueToDifficulty(Technique.NakedTriple)).toBe('hard');
     expect(techniqueToDifficulty(Technique.XWing)).toBe('expert');
+    expect(techniqueToDifficulty(Technique.YWing)).toBe('expert');
   });
 });
