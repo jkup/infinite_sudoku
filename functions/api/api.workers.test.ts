@@ -67,6 +67,7 @@ describe('Pages Functions with D1', () => {
       totalScore: 0,
       currentDailyStreak: 0,
       longestDailyStreak: 0,
+      dailyDates: [],
     });
   });
 
@@ -100,6 +101,7 @@ describe('Pages Functions with D1', () => {
       totalScore: 770,
       currentDailyStreak: 0,
       longestDailyStreak: 0,
+      dailyDates: [],
     });
 
     const stored = await env.DB.prepare(
@@ -198,7 +200,10 @@ describe('Pages Functions with D1', () => {
     expect((await submitDaily(dailyIds[2], 'classic', '13')).status).toBe(200);
     expect((await submitDaily(dailyIds[3], 'classic', '14')).status).toBe(200);
     stats = await (await getStats(statsGetContext())).json();
-    expect(stats).toEqual(expect.objectContaining({ currentDailyStreak: 1, longestDailyStreak: 2 }));
+    expect(stats).toEqual(expect.objectContaining({
+      currentDailyStreak: 1, longestDailyStreak: 2,
+      dailyDates: ['2026-12-31', '2027-01-01', '2027-01-03'], // distinct, ascending; both modes on 12-31 collapse
+    }));
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM game_results WHERE is_daily = 1').first('count')).toBe(4);
   });
 

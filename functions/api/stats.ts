@@ -3,6 +3,8 @@
 
 import { parseGameResult, RequestValidationError } from '../lib/gameResult';
 import { fetchDisplayName } from '../lib/displayName';
+import { addDays, utcDateString } from '../../src/lib/daily';
+import { DAILY_HISTORY_DAYS } from '../../src/lib/streakCalendar';
 
 type RequestData = {
   clerkUserId: string;
@@ -12,9 +14,17 @@ export const onRequestGet: PagesFunction<Cloudflare.Env, string, RequestData> = 
   const userId = context.data.clerkUserId;
   const { DB } = context.env;
 
-  const row = await DB.prepare(
-    'SELECT * FROM user_stats WHERE clerk_user_id = ?'
-  ).bind(userId).first();
+  const [statsRow, dailyRows] = await DB.batch([
+    DB.prepare('SELECT * FROM user_stats WHERE clerk_user_id = ?').bind(userId),
+    // Distinct canonical dates with a counted daily completion, for the streak calendar.
+    DB.prepare(
+      `SELECT DISTINCT daily_date FROM game_results
+       WHERE clerk_user_id = ? AND is_daily = 1 AND daily_date >= ?
+       ORDER BY daily_date`,
+    ).bind(userId, addDays(utcDateString(), -DAILY_HISTORY_DAYS)),
+  ]);
+  const row = statsRow.results?.[0] as Record<string, number> | undefined;
+  const dailyDates = (dailyRows.results ?? []).map((r) => (r as { daily_date: string }).daily_date);
 
   if (!row) {
     return Response.json({
@@ -23,6 +33,7 @@ export const onRequestGet: PagesFunction<Cloudflare.Env, string, RequestData> = 
       totalScore: 0,
       currentDailyStreak: 0,
       longestDailyStreak: 0,
+      dailyDates,
     });
   }
 
@@ -32,6 +43,7 @@ export const onRequestGet: PagesFunction<Cloudflare.Env, string, RequestData> = 
     totalScore: row.total_score,
     currentDailyStreak: row.current_daily_streak,
     longestDailyStreak: row.longest_daily_streak,
+    dailyDates,
   });
 };
 

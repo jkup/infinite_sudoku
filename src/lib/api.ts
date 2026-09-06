@@ -30,6 +30,8 @@ export type UserStats = {
   totalScore: number;
   currentDailyStreak: number;
   longestDailyStreak: number;
+  /** Canonical UTC dates with a counted daily completion, ascending, recent window only. */
+  dailyDates: string[];
 };
 
 export type LeaderboardEntry = {

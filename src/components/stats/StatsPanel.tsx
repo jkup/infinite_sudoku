@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { getStats } from '../../lib/api';
 import type { UserStats } from '../../lib/api';
+import StreakCalendar from './StreakCalendar';
 
 export default function StatsPanel() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -43,12 +44,21 @@ export default function StatsPanel() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 text-center">
-      <StatCard label="Games" value={stats.totalGamesCompleted} />
-      <StatCard label="Total Score" value={stats.totalScore.toLocaleString()} />
-      <StatCard label="Hints Used" value={stats.totalHintsUsed} />
-      <StatCard label="Daily Streak" value={stats.currentDailyStreak} />
-    </div>
+    <>
+      <div className="grid grid-cols-2 gap-3 text-center">
+        <StatCard label="Games" value={stats.totalGamesCompleted} />
+        <StatCard label="Total Score" value={stats.totalScore.toLocaleString()} />
+        <StatCard label="Hints Used" value={stats.totalHintsUsed} />
+        <StatCard label="Daily Streak" value={stats.currentDailyStreak} />
+      </div>
+      <div className="mt-4">
+        <StreakCalendar
+          dailyDates={stats.dailyDates ?? []}
+          currentStreak={stats.currentDailyStreak}
+          longestStreak={stats.longestDailyStreak}
+        />
+      </div>
+    </>
   );
 }
 
