@@ -1,5 +1,6 @@
 import type { Digit, Grid, Puzzle, GameMode, Difficulty, GameStatus, InputMode, HistoryEntry, CellChange, CellPosition } from '../engine/types';
 import { isPuzzleComplete, isPuzzleDefinitionValid } from '../engine/validator';
+import { isDailyPuzzleRef } from './daily';
 
 const SAVE_KEY = 'infinite-sudoku-save';
 const SAVE_VERSION = 2;
@@ -227,10 +228,14 @@ export function loadGame(): {
     // Basic validation
     if (!data.grid || !data.puzzle || !data.puzzle.solution) throw new Error('Invalid saved game');
 
-    const puzzle = {
-      ...data.puzzle,
+    // A daily identity that no longer parses is dropped rather than failing the
+    // whole save: the game stays playable, it just won't count as a daily.
+    const { daily, ...puzzleData } = data.puzzle;
+    const puzzle: Puzzle = {
+      ...puzzleData,
       gridSize: data.puzzle.gridSize ?? 9,
       completionId: data.puzzle.completionId ?? crypto.randomUUID(),
+      ...(isDailyPuzzleRef(daily) ? { daily } : {}),
     };
     if (!isPuzzleDefinitionValid(puzzle) || !isSerializedGridValid(data.grid, puzzle)) throw new Error('Invalid saved game');
     if (!['playing', 'paused', 'completed'].includes(data.status ?? '')) throw new Error('Invalid saved game');

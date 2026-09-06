@@ -29,6 +29,13 @@ export function isDailyDate(value: unknown): value is string {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+/** True for a well-formed daily identity (positive integer id, canonical date). */
+export function isDailyPuzzleRef(value: unknown): value is DailyPuzzleRef {
+  if (!value || typeof value !== 'object') return false;
+  const ref = value as Partial<DailyPuzzleRef>;
+  return Number.isInteger(ref.id) && ref.id! >= 1 && isDailyDate(ref.date);
+}
+
 /** The canonical UTC date string for an instant. */
 export function utcDateString(instant: Date = new Date()): string {
   return instant.toISOString().slice(0, 10);
@@ -88,7 +95,7 @@ function parseJson(text: string): unknown {
  * malformed. Validation uses the same engine contract as saved games.
  */
 export function puzzleFromDailyRow(row: DailyPuzzleRow): Puzzle | null {
-  if (!Number.isInteger(row.id) || row.id < 1 || !isDailyDate(row.date)) return null;
+  if (!isDailyPuzzleRef({ id: row.id, date: row.date })) return null;
   const initial = parseJson(row.puzzle_data);
   const solution = parseJson(row.solution);
   const cages = row.cage_data === null ? undefined : parseJson(row.cage_data);
@@ -125,7 +132,8 @@ export function dailyPayloadFromPuzzle(puzzle: Puzzle, daily: DailyPuzzleRef): D
 export function puzzleFromDailyPayload(payload: unknown): Puzzle | null {
   if (!payload || typeof payload !== 'object') return null;
   const data = payload as Partial<DailyPuzzlePayload>;
-  if (!Number.isInteger(data.id) || data.id! < 1 || !isDailyDate(data.date)) return null;
+  const daily = { id: data.id, date: data.date };
+  if (!isDailyPuzzleRef(daily)) return null;
   if (!Array.isArray(data.initial) || !Array.isArray(data.solution)) return null;
   if (data.cages !== undefined && !Array.isArray(data.cages)) return null;
   const puzzle: Puzzle = {
@@ -135,7 +143,7 @@ export function puzzleFromDailyPayload(payload: unknown): Puzzle | null {
     mode: data.mode as GameMode,
     gridSize: data.solution.length,
     ...(data.cages ? { cages: data.cages } : {}),
-    daily: { id: data.id!, date: data.date },
+    daily,
   };
   return isPuzzleDefinitionValid(puzzle) ? puzzle : null;
 }

@@ -8,11 +8,14 @@ vi.mock('../engine/generateAsync', () => ({
   generatePuzzleAsync: mockGeneratePuzzleAsync,
   generateMiniPuzzleAsync: vi.fn(),
 }));
-vi.mock('../lib/api', () => ({ postGameResult: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../lib/api', () => ({
+  postGameResult: vi.fn().mockResolvedValue(undefined),
+  getDailyPuzzle: vi.fn(),
+}));
 
 import { useGameStore } from './gameStore';
 import { useHintStore } from './hintStore';
-import { postGameResult } from '../lib/api';
+import { getDailyPuzzle, postGameResult } from '../lib/api';
 import { getQueuedCompletion } from '../lib/completionQueue';
 
 const solution = Array.from({ length: 9 }, (_, row) =>
@@ -104,6 +107,57 @@ describe('game store transitions', () => {
     expect(getQueuedCompletion(completionId)).toBeNull();
     expect(vi.mocked(postGameResult).mock.calls[0][0].completionId)
       .toBe(vi.mocked(postGameResult).mock.calls[1][0].completionId);
+  });
+
+  it('starts the daily puzzle and tags its completion with the daily id', async () => {
+    const daily: Puzzle = { ...makePuzzle(), difficulty: 'expert', daily: { id: 42, date: '2026-09-06' } };
+    vi.mocked(getDailyPuzzle).mockResolvedValueOnce(daily);
+
+    useGameStore.getState().startDaily('classic');
+    expect(useGameStore.getState().generationStatus).toBe('loading');
+    expect(useGameStore.getState().pendingGameSettings).toMatchObject({ mode: 'classic', daily: true });
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('idle'));
+
+    const state = useGameStore.getState();
+    expect(state.puzzle?.daily).toEqual({ id: 42, date: '2026-09-06' });
+    expect(state.difficulty).toBe('expert');
+    expect(state.puzzle?.completionId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(getDailyPuzzle).toHaveBeenCalledWith('classic');
+
+    state.selectCell({ row: 0, col: 0 });
+    state.placeDigit(solution[0][0]);
+    expect(useGameStore.getState().status).toBe('completed');
+    expect(vi.mocked(postGameResult).mock.calls[0][0]).toMatchObject({ dailyPuzzleId: 42, difficulty: 'expert' });
+  });
+
+  it('omits the daily id from ordinary completions', () => {
+    useGameStore.getState().selectCell({ row: 0, col: 0 });
+    useGameStore.getState().placeDigit(solution[0][0]);
+    expect(vi.mocked(postGameResult).mock.calls[0][0]).not.toHaveProperty('dailyPuzzleId');
+  });
+
+  it('reports a missing daily puzzle and can retry the same request', async () => {
+    vi.mocked(getDailyPuzzle).mockResolvedValueOnce(null);
+    useGameStore.getState().startDaily('killer');
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
+    expect(useGameStore.getState().generationError).toContain("isn't ready yet");
+    expect(useGameStore.getState().sessionPhase).toBe('failed');
+
+    vi.mocked(getDailyPuzzle).mockRejectedValueOnce(new Error('network'));
+    useGameStore.getState().retryGeneration();
+    expect(getDailyPuzzle).toHaveBeenLastCalledWith('killer');
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
+    expect(useGameStore.getState().generationError).toContain('Check your connection');
+  });
+
+  it('retries ordinary generation with the same settings', async () => {
+    mockGeneratePuzzleAsync.mockRejectedValueOnce(new Error('worker crashed'));
+    useGameStore.getState().newGame('hard', 'killer');
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
+
+    mockGeneratePuzzleAsync.mockResolvedValueOnce({ ...makePuzzle(), difficulty: 'hard', mode: 'killer', cages: undefined });
+    useGameStore.getState().retryGeneration();
+    expect(mockGeneratePuzzleAsync).toHaveBeenLastCalledWith('hard', 'killer');
   });
 
   it('undoes and redoes a completed placement', () => {

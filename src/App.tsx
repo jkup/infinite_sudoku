@@ -16,6 +16,7 @@ import DigitBar from './components/board/DigitBar';
 import ControlBar from './components/controls/ControlBar';
 import Timer from './components/controls/Timer';
 import GameModePicker from './components/controls/GameModePicker';
+import DailyButton from './components/controls/DailyButton';
 import PuzzleStack from './components/hint/PuzzleStack';
 import ConfirmModal from './components/ui/ConfirmModal';
 import KeyboardHelp from './components/ui/KeyboardHelp';
@@ -273,8 +274,20 @@ function SignUpPage() {
   );
 }
 
+type PendingGame =
+  | { kind: 'new'; difficulty: Difficulty; mode: GameMode }
+  | { kind: 'daily'; mode: GameMode };
+
+function formatDailyDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
+    weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
+  });
+}
+
 function GameScreen() {
   const newGame = useGameStore((s) => s.newGame);
+  const startDaily = useGameStore((s) => s.startDaily);
+  const retryGeneration = useGameStore((s) => s.retryGeneration);
   const puzzle = useGameStore((s) => s.puzzle);
   const status = useGameStore((s) => s.status);
   const difficulty = useGameStore((s) => s.difficulty);
@@ -303,7 +316,7 @@ function GameScreen() {
   const isInTutorialPractice = tutorialPhase === 'practice';
   const activeTutorial = activeTutorialId ? getTutorialById(activeTutorialId) : null;
 
-  const [pendingGame, setPendingGame] = useState<{ difficulty: Difficulty; mode: GameMode } | null>(null);
+  const [pendingGame, setPendingGame] = useState<PendingGame | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
 
   const tutorialFocusDone = !!(
@@ -362,24 +375,37 @@ function GameScreen() {
     }
   }, [puzzle, newGame, loadSavedGame]);
 
+  const beginPendingGame = useCallback((pending: PendingGame) => {
+    if (pending.kind === 'daily') startDaily(pending.mode);
+    else newGame(pending.difficulty, pending.mode);
+  }, [newGame, startDaily]);
+
   // Request a new game — confirm if the current game has progress
-  const requestNewGame = useCallback((d: Difficulty, m: GameMode) => {
+  const requestGame = useCallback((pending: PendingGame) => {
     const hasProgress = historyIndex >= 0 && status === 'playing';
     if (hasProgress || isInHintStack) {
-      setPendingGame({ difficulty: d, mode: m });
+      setPendingGame(pending);
     } else {
-      newGame(d, m);
+      beginPendingGame(pending);
     }
-  }, [historyIndex, status, newGame, isInHintStack, setPendingGame]);
+  }, [historyIndex, status, isInHintStack, beginPendingGame, setPendingGame]);
+
+  const requestNewGame = useCallback((d: Difficulty, m: GameMode) => {
+    requestGame({ kind: 'new', difficulty: d, mode: m });
+  }, [requestGame]);
+
+  const requestDaily = useCallback((m: GameMode) => {
+    requestGame({ kind: 'daily', mode: m });
+  }, [requestGame]);
 
   const confirmNewGame = useCallback(() => {
     if (pendingGame) {
       // Clear the hint stack when starting a fresh game
       useHintStore.setState({ stack: [] });
-      newGame(pendingGame.difficulty, pendingGame.mode);
+      beginPendingGame(pendingGame);
       setPendingGame(null);
     }
-  }, [pendingGame, newGame, setPendingGame]);
+  }, [pendingGame, beginPendingGame, setPendingGame]);
 
   if (!puzzle) {
     return (
@@ -392,12 +418,12 @@ function GameScreen() {
               <button
                 className="px-5 py-2.5 rounded-xl font-semibold"
                 style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
-                onClick={() => newGame(pendingGameSettings?.difficulty ?? 'easy', pendingGameSettings?.mode ?? 'classic')}
+                onClick={() => pendingGameSettings ? retryGeneration() : newGame('easy')}
               >
                 Try Again
               </button>
             </>
-          ) : <p className="font-semibold">Generating your puzzle…</p>}
+          ) : <p className="font-semibold">{pendingGameSettings?.daily ? "Loading today's daily puzzle…" : 'Generating your puzzle…'}</p>}
         </div>
       </main>
     );
@@ -416,12 +442,20 @@ function GameScreen() {
           </h1>
           <div className="flex items-center gap-1.5">
             <GameModePicker onRequestNewGame={requestNewGame} />
+            <DailyButton onRequestDaily={requestDaily} />
             {CLERK_KEY && <UserButton />}
             <Timer />
             <GearMenu onShowShortcuts={() => setShowKeyboardHelp(true)} />
           </div>
         </div>
       </div>
+
+      {/* Daily puzzle banner */}
+      {puzzle.daily && !isInHintStack && !isInTutorialPractice && (
+        <p className="w-full max-w-[min(98vw,500px)] mb-2 text-center text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
+          Daily puzzle &middot; {formatDailyDate(puzzle.daily.date)}
+        </p>
+      )}
 
       {/* Hint puzzle stack indicator */}
       <PuzzleStack />
@@ -463,15 +497,15 @@ function GameScreen() {
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="status" aria-live="polite">
           <div className="rounded-2xl p-6 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             {generationStatus === 'loading' ? (
-              <p className="font-semibold">Generating your puzzle…</p>
+              <p className="font-semibold">{pendingGameSettings?.daily ? "Loading today's daily puzzle…" : 'Generating your puzzle…'}</p>
             ) : (
               <>
-                <h2 className="text-xl font-bold mb-2">Couldn&apos;t create a puzzle</h2>
+                <h2 className="text-xl font-bold mb-2">Couldn&apos;t {pendingGameSettings?.daily ? 'load the daily' : 'create a'} puzzle</h2>
                 <p className="mb-4" style={{ color: 'var(--color-text-muted)' }}>{generationError}</p>
                 <button
                   className="px-5 py-2.5 rounded-xl font-semibold"
                   style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
-                  onClick={() => pendingGameSettings && newGame(pendingGameSettings.difficulty, pendingGameSettings.mode)}
+                  onClick={retryGeneration}
                 >
                   Try Again
                 </button>
@@ -484,12 +518,12 @@ function GameScreen() {
       {/* Confirm new game modal */}
       {pendingGame && (
         <ConfirmModal
-          title="Start new game?"
+          title={pendingGame.kind === 'daily' ? "Start today's daily puzzle?" : 'Start new game?'}
           message={isInHintStack
             ? "You're in a hint puzzle. Starting a new game will discard all progress including parent puzzles."
             : "Your current progress will be lost."
           }
-          confirmLabel="New Game"
+          confirmLabel={pendingGame.kind === 'daily' ? 'Play Daily' : 'New Game'}
           cancelLabel="Keep Playing"
           onConfirm={confirmNewGame}
           onCancel={() => setPendingGame(null)}
@@ -558,10 +592,12 @@ function GameScreen() {
           <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127942;</div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
-              Puzzle Complete!
+              {puzzle.daily ? 'Daily Complete!' : 'Puzzle Complete!'}
             </h2>
             <p className="mb-4" style={{ color: 'var(--color-text-muted)' }}>
-              Great job solving this {difficulty} {mode} puzzle!
+              {puzzle.daily
+                ? `You solved the ${difficulty} ${mode} daily for ${formatDailyDate(puzzle.daily.date)}.`
+                : `Great job solving this ${difficulty} ${mode} puzzle!`}
             </p>
             <ScoreSummary />
             <div className="mb-4 text-sm" aria-live="polite" style={{ color: 'var(--color-text-muted)' }}>

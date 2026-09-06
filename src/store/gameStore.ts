@@ -16,10 +16,14 @@ import { generatePuzzleAsync } from '../engine/generateAsync';
 import { findConflicts, getPeers, isPuzzleComplete, isPuzzleDefinitionValid } from '../engine/validator';
 import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame, hasSavedGame } from '../lib/persistence';
-import { postGameResult } from '../lib/api';
+import { getDailyPuzzle, postGameResult } from '../lib/api';
+import { dailyDifficultyFor, utcDateString } from '../lib/daily';
 import { getQueuedCompletion, getQueuedCompletions, queueCompletion, removeQueuedCompletion, type QueuedCompletion } from '../lib/completionQueue';
 
 export type SessionPhase = 'generating' | 'playing' | 'paused' | 'completed' | 'failed' | 'nested-hint';
+
+/** What is being loaded while generationStatus is not idle; lets a failure retry the same request. */
+export type PendingGameSettings = { difficulty: Difficulty; mode: GameMode; daily?: boolean };
 export type SessionKind = 'game' | 'hint' | 'tutorial';
 
 export type GameSessionSnapshot = {
@@ -49,7 +53,7 @@ type GameState = {
   status: GameStatus;
   generationStatus: 'idle' | 'loading' | 'error';
   generationError: string | null;
-  pendingGameSettings: { difficulty: Difficulty; mode: GameMode } | null;
+  pendingGameSettings: PendingGameSettings | null;
   sessionPhase: SessionPhase;
   sessionKind: SessionKind;
   recoveryNotice: string | null;
@@ -78,6 +82,8 @@ type GameState = {
 
   // Actions
   newGame: (difficulty: Difficulty, mode?: GameMode) => void;
+  startDaily: (mode: GameMode) => void;
+  retryGeneration: () => void;
   selectCell: (pos: CellPosition | null) => void;
   placeDigit: (digit: Digit) => void;
   revealHint: (pos: CellPosition, digit: Digit, incrementUsage?: boolean) => void;
@@ -275,7 +281,72 @@ function completeCurrentSession(set: (partial: Partial<GameState>) => void, get:
   const completionId = puzzle?.completionId ?? crypto.randomUUID();
   if (sessionKind !== 'game' || submittedCompletionId === completionId) return;
   set({ submittedCompletionId: completionId });
-  syncCompletion({ completionId, mode, difficulty, solveTimeMs: elapsedMs, hintsUsed, maxHintDepth: 0, errorsMade }, set);
+  const dailyPuzzleId = puzzle?.daily?.id;
+  syncCompletion({
+    completionId, mode, difficulty, solveTimeMs: elapsedMs, hintsUsed, maxHintDepth: 0, errorsMade,
+    ...(dailyPuzzleId === undefined ? {} : { dailyPuzzleId }),
+  }, set);
+}
+
+/** Replace the current session with a freshly loaded top-level puzzle and start its timer. */
+function beginPuzzle(set: (partial: Partial<GameState>) => void, get: () => GameState, puzzle: Puzzle): void {
+  const grid = gridFromValues(puzzle.initial, true);
+  set({
+    grid,
+    puzzle: { ...puzzle, completionId: crypto.randomUUID() },
+    mode: puzzle.mode,
+    difficulty: puzzle.difficulty,
+    status: 'playing',
+    generationStatus: 'idle',
+    generationError: null,
+    pendingGameSettings: null,
+    sessionPhase: 'playing',
+    sessionKind: 'game',
+    selectedCell: null,
+    inputMode: 'digit',
+    history: [],
+    historyIndex: -1,
+    elapsedMs: 0,
+    pausedByUser: false,
+    conflicts: new Map(),
+    hintsUsed: 0,
+    errorsMade: 0,
+    submittedCompletionId: null,
+    completionSyncStatus: 'idle',
+    completionSyncError: null,
+  });
+  startTimer(set, get, 0);
+}
+
+/** Run an async puzzle load, ignoring its result if a newer load has started since. */
+function loadPuzzle(
+  set: (partial: Partial<GameState>) => void,
+  get: () => GameState,
+  settings: PendingGameSettings,
+  load: () => Promise<Puzzle>,
+): void {
+  const requestId = ++latestGameRequestId;
+  stopTimer(set);
+  set({
+    generationStatus: 'loading',
+    generationError: null,
+    pendingGameSettings: settings,
+    sessionPhase: 'generating',
+    sessionKind: 'game',
+  });
+
+  load().then((puzzle) => {
+    if (requestId !== latestGameRequestId) return;
+    if (!isPuzzleDefinitionValid(puzzle)) throw new Error('Puzzle generation returned invalid data');
+    beginPuzzle(set, get, puzzle);
+  }).catch((error: unknown) => {
+    if (requestId !== latestGameRequestId) return;
+    set({
+      generationStatus: 'error',
+      generationError: error instanceof Error ? error.message : 'Puzzle generation failed',
+      sessionPhase: 'failed',
+    });
+  });
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -304,54 +375,28 @@ export const useGameStore = create<GameState>((set, get) => ({
   completionSyncError: null,
 
   newGame: (difficulty, mode = 'classic') => {
-    const requestId = ++latestGameRequestId;
-    stopTimer(set);
-    set({
-      generationStatus: 'loading',
-      generationError: null,
-      pendingGameSettings: { difficulty, mode },
-      sessionPhase: 'generating',
-      sessionKind: 'game',
-    });
+    loadPuzzle(set, get, { difficulty, mode }, () => generatePuzzleAsync(difficulty, mode));
+  },
 
-    generatePuzzleAsync(difficulty, mode).then((puzzle) => {
-      if (requestId !== latestGameRequestId) return;
-      if (!isPuzzleDefinitionValid(puzzle)) throw new Error('Puzzle generation returned invalid data');
-      const grid = gridFromValues(puzzle.initial, true);
-
-      set({
-        grid,
-        puzzle: { ...puzzle, completionId: crypto.randomUUID() },
-        mode: puzzle.mode,
-        difficulty: puzzle.difficulty,
-        status: 'playing',
-        generationStatus: 'idle',
-        generationError: null,
-        pendingGameSettings: null,
-        sessionPhase: 'playing',
-        sessionKind: 'game',
-        selectedCell: null,
-        inputMode: 'digit',
-        history: [],
-        historyIndex: -1,
-        elapsedMs: 0,
-        pausedByUser: false,
-        conflicts: new Map(),
-        hintsUsed: 0,
-        errorsMade: 0,
-        submittedCompletionId: null,
-        completionSyncStatus: 'idle',
-        completionSyncError: null,
-      });
-      startTimer(set, get, 0);
-    }).catch((error: unknown) => {
-      if (requestId !== latestGameRequestId) return;
-      set({
-        generationStatus: 'error',
-        generationError: error instanceof Error ? error.message : 'Puzzle generation failed',
-        sessionPhase: 'failed',
-      });
+  startDaily: (mode) => {
+    const difficulty = dailyDifficultyFor(utcDateString());
+    loadPuzzle(set, get, { difficulty, mode, daily: true }, async () => {
+      let puzzle: Puzzle | null;
+      try {
+        puzzle = await getDailyPuzzle(mode);
+      } catch {
+        throw new Error("Couldn't load today's daily puzzle. Check your connection and try again.");
+      }
+      if (!puzzle) throw new Error("Today's daily puzzle isn't ready yet. Please try again later.");
+      return puzzle;
     });
+  },
+
+  retryGeneration: () => {
+    const settings = get().pendingGameSettings;
+    if (!settings) return;
+    if (settings.daily) get().startDaily(settings.mode);
+    else get().newGame(settings.difficulty, settings.mode);
   },
 
   selectCell: (pos) => {

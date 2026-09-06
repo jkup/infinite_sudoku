@@ -48,6 +48,21 @@ describe('game persistence', () => {
     expect(JSON.parse(localStorage.getItem('infinite-sudoku-save')!).version).toBe(2);
   });
 
+  it('keeps a valid daily identity and drops a corrupt one', () => {
+    const base = {
+      grid: gridFromValues(puzzle.initial, true), mode: 'classic' as const, difficulty: 'easy' as const,
+      status: 'playing' as const, inputMode: 'digit' as const, history: [], historyIndex: -1, elapsedMs: 0,
+      hintsUsed: 0, errorsMade: 0, submittedCompletionId: null,
+    };
+    saveGame({ ...base, puzzle: { ...puzzle, daily: { id: 5, date: '2026-09-06' } } });
+    expect(loadGame()?.puzzle.daily).toEqual({ id: 5, date: '2026-09-06' });
+
+    saveGame({ ...base, puzzle: { ...puzzle, daily: { id: -1, date: 'someday' } as never } });
+    const restored = loadGame();
+    expect(restored).not.toBeNull();
+    expect(restored?.puzzle).not.toHaveProperty('daily');
+  });
+
   it('returns null for malformed or unsupported saved data', () => {
     localStorage.setItem('infinite-sudoku-save', '{bad json');
     expect(loadGame()).toBeNull();

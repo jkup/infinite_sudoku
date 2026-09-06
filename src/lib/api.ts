@@ -1,4 +1,5 @@
-import type { Difficulty, GameMode } from '../engine/types';
+import type { Difficulty, GameMode, Puzzle } from '../engine/types';
+import { puzzleFromDailyPayload } from './daily';
 
 export type GameResultPayload = {
   completionId: string;
@@ -78,6 +79,21 @@ export async function postGameResult(data: GameResultPayload): Promise<{ score: 
   }
   const result = await res.json() as { score: number };
   return { score: result.score };
+}
+
+/**
+ * Fetch the canonical daily puzzle for a mode (today by default). Public route,
+ * so no token is sent. Resolves null when no puzzle exists for that date yet.
+ */
+export async function getDailyPuzzle(mode: GameMode, date?: string): Promise<Puzzle | null> {
+  const params = new URLSearchParams({ mode });
+  if (date) params.set('date', date);
+  const res = await fetch(`/api/daily?${params}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new ApiError(res.status, res.headers.get('X-Request-ID'));
+  const puzzle = puzzleFromDailyPayload(await res.json());
+  if (!puzzle) throw new Error('Daily puzzle response was invalid');
+  return puzzle;
 }
 
 export async function getStats(): Promise<UserStats | null> {
