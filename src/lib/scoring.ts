@@ -12,8 +12,31 @@ const MODE_MULTIPLIER: Record<GameMode, number> = {
   killer: 1.5,
 };
 
+export type ScoreInput = {
+  difficulty: Difficulty;
+  mode: GameMode;
+  solveTimeMs: number;
+  hintsUsed: number;
+  errorsMade: number;
+};
+
+export type ScoreBreakdown = {
+  /** 1000 × difficulty × mode multipliers */
+  base: number;
+  /** Solve time at or below this earns no time penalty */
+  parTimeMs: number;
+  timePenalty: number;
+  hintPenalty: number;
+  errorPenalty: number;
+  /** Score floor (10% of base) */
+  minimum: number;
+  /** True when penalties pushed the raw score below the floor */
+  floored: boolean;
+  score: number;
+};
+
 /**
- * Calculate score for a completed puzzle.
+ * Break down the score for a completed puzzle.
  *
  * Base = 1000 × difficulty × mode
  * Time penalty: lose 1 point per second after a par time (par = 60s × difficulty multiplier)
@@ -22,13 +45,7 @@ const MODE_MULTIPLIER: Record<GameMode, number> = {
  *
  * Minimum score is 10% of the base.
  */
-export function calculateScore(params: {
-  difficulty: Difficulty;
-  mode: GameMode;
-  solveTimeMs: number;
-  hintsUsed: number;
-  errorsMade: number;
-}): number {
+export function scoreBreakdown(params: ScoreInput): ScoreBreakdown {
   const { difficulty, mode, solveTimeMs, hintsUsed, errorsMade } = params;
 
   const diffMult = DIFFICULTY_MULTIPLIER[difficulty];
@@ -43,8 +60,17 @@ export function calculateScore(params: {
   const hintPenalty = hintsUsed * 100;
   const errorPenalty = errorsMade * 50;
 
-  const score = base - timePenalty - hintPenalty - errorPenalty;
+  const raw = Math.round(base - timePenalty - hintPenalty - errorPenalty);
   const minimum = Math.floor(base * 0.1);
+  const floored = raw < minimum;
 
-  return Math.max(minimum, Math.round(score));
+  return {
+    base, parTimeMs, timePenalty, hintPenalty, errorPenalty, minimum, floored,
+    score: floored ? minimum : raw,
+  };
+}
+
+/** Calculate the final score for a completed puzzle. See {@link scoreBreakdown}. */
+export function calculateScore(params: ScoreInput): number {
+  return scoreBreakdown(params).score;
 }

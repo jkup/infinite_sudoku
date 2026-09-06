@@ -23,6 +23,7 @@ import Onboarding from './components/ui/Onboarding';
 import Confetti from './components/ui/Confetti';
 import UserButton from './components/auth/UserButton';
 import StatsPanel from './components/stats/StatsPanel';
+import ScoreSummary from './components/stats/ScoreSummary';
 import TutorialList from './components/tutorial/TutorialList';
 import TutorialLesson from './components/tutorial/TutorialLesson';
 import { setAuthTokenGetter } from './lib/api';
@@ -559,9 +560,10 @@ function GameScreen() {
             <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
               Puzzle Complete!
             </h2>
-            <p className="mb-6" style={{ color: 'var(--color-text-muted)' }}>
+            <p className="mb-4" style={{ color: 'var(--color-text-muted)' }}>
               Great job solving this {difficulty} {mode} puzzle!
             </p>
+            <ScoreSummary />
             <div className="mb-4 text-sm" aria-live="polite" style={{ color: 'var(--color-text-muted)' }}>
               {completionSyncStatus === 'syncing' && <p>Syncing stats…</p>}
               {completionSyncStatus === 'synced' && <p>Stats synced.</p>}
