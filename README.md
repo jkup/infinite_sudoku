@@ -87,6 +87,19 @@ npm run daily:generate -- --days 14            # remote D1 via your Wrangler log
 npm run daily:generate -- --from 2026-12-24 --days 3 --dry-run   # print SQL only
 ```
 
+In production the `Daily puzzles` GitHub Actions workflow runs the same script
+every night at 01:17 UTC (and on demand via "Run workflow") to keep the next 7
+days present. It needs two repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `CLOUDFLARE_ACCOUNT_ID` | The account that owns the D1 database |
+| `CLOUDFLARE_API_TOKEN` | An API token with the **Account › D1 › Edit** permission and nothing else |
+
+Seed the first week yourself before enabling the workflow, or run the workflow
+manually once the secrets exist. If no puzzle exists for the current UTC date
+the app tells the player the daily isn't ready yet and offers a retry.
+
 `GET /api/daily?mode=classic|killer[&date=YYYY-MM-DD]` serves a puzzle and is
 the only public API route. See [docs/DAILY_RULES.md](docs/DAILY_RULES.md) for
 the identity, streak, and rotation rules.

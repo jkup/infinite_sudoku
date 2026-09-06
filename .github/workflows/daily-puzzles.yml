@@ -1,0 +1,40 @@
+name: Daily puzzles
+
+# Keeps the next week of canonical daily puzzles present in production D1.
+# Generation is idempotent, so reruns and overlapping windows are harmless.
+on:
+  schedule:
+    - cron: '17 1 * * *' # 01:17 UTC, after the new UTC day has started
+  workflow_dispatch:
+    inputs:
+      days:
+        description: How many UTC days ahead to top up (starting today)
+        default: '7'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-puzzles
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Generate missing daily puzzles
+        run: npm run daily:generate -- --days "${{ inputs.days || '7' }}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_LOG_PATH: ${{ runner.temp }}/wrangler.log

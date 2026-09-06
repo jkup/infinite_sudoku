@@ -10,6 +10,7 @@ npm run dev:full     # Wrangler Pages dev (includes Cloudflare Functions + D1)
 npm run build        # tsc -b && vite build
 npm run lint         # ESLint
 npm run preview      # Preview production build
+npm run daily:generate -- --local   # Top up canonical daily puzzles (see README "Daily puzzles")
 ```
 
 Build must pass `tsc -b` (strict mode, no unused locals/params) before Vite bundles.
