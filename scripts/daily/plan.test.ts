@@ -1,6 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { generatePuzzle } from '../../src/engine/generator';
-import { dailyInsertSql, existingDailiesSql, missingDailies, parseD1Rows, planDailies } from './plan';
+import { dailyInsertSql, existingDailiesSql, generateForPlan, missingDailies, parseD1Rows, planDailies } from './plan';
+
+describe('generateForPlan', () => {
+  const entry = { date: '2026-09-11', mode: 'classic', difficulty: 'hard' } as const;
+  const puzzleOf = (difficulty: 'easy' | 'hard') => ({ ...generatePuzzle('easy', 'classic'), difficulty });
+
+  it('retries when the engine falls back to a different difficulty', () => {
+    const generate = vi.fn().mockReturnValueOnce(puzzleOf('easy')).mockReturnValueOnce(puzzleOf('hard'));
+    const onRetry = vi.fn();
+    expect(generateForPlan(entry, generate, 3, onRetry).difficulty).toBe('hard');
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(onRetry).toHaveBeenCalledWith(1, 'easy');
+  });
+
+  it('fails loudly instead of storing a mislabeled puzzle', () => {
+    const generate = vi.fn().mockReturnValue(puzzleOf('easy'));
+    expect(() => generateForPlan(entry, generate, 2)).toThrow('Could not generate a hard classic puzzle for 2026-09-11 after 2 attempts');
+  });
+});
 
 describe('planDailies', () => {
   it('lists both modes for each date with the rotation difficulty', () => {

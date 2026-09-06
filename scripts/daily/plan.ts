@@ -27,6 +27,26 @@ export function missingDailies(plan: DailyPlanEntry[], existing: Array<{ date: s
   return plan.filter((entry) => !present.has(`${entry.date}|${entry.mode}`));
 }
 
+/**
+ * Generate a puzzle whose classified difficulty matches the plan exactly.
+ * The engine falls back to an easy puzzle when it cannot hit the target within
+ * its own attempt budget, so retry a bounded number of times rather than store
+ * a mislabeled daily.
+ */
+export function generateForPlan(
+  entry: DailyPlanEntry,
+  generate: (difficulty: Difficulty, mode: GameMode) => Puzzle,
+  attempts = 5,
+  onRetry?: (attempt: number, got: Difficulty) => void,
+): Puzzle {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const puzzle = generate(entry.difficulty, entry.mode);
+    if (puzzle.difficulty === entry.difficulty && puzzle.mode === entry.mode) return puzzle;
+    onRetry?.(attempt, puzzle.difficulty);
+  }
+  throw new Error(`Could not generate a ${entry.difficulty} ${entry.mode} puzzle for ${entry.date} after ${attempts} attempts`);
+}
+
 function sqlString(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }

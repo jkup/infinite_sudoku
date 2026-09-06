@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { generatePuzzle } from '../src/engine/generator';
 import { addDays, utcDateString } from '../src/lib/daily';
-import { dailyInsertSql, existingDailiesSql, missingDailies, parseD1Rows, planDailies } from './daily/plan';
+import { dailyInsertSql, existingDailiesSql, generateForPlan, missingDailies, parseD1Rows, planDailies } from './daily/plan';
 
 const { values } = parseArgs({
   options: {
@@ -56,7 +56,9 @@ console.log(`Generating ${missing.length} missing puzzle(s)…`);
 const statements: string[] = [];
 for (const entry of missing) {
   const startedAt = Date.now();
-  const puzzle = generatePuzzle(entry.difficulty, entry.mode);
+  const puzzle = generateForPlan(entry, generatePuzzle, 5, (attempt, got) => {
+    console.log(`  ${entry.date} ${entry.mode.padEnd(7)} ${entry.difficulty.padEnd(6)} attempt ${attempt} produced ${got}; retrying`);
+  });
   statements.push(dailyInsertSql(entry, puzzle));
   console.log(`  ${entry.date} ${entry.mode.padEnd(7)} ${entry.difficulty.padEnd(6)} ${Date.now() - startedAt} ms`);
 }
