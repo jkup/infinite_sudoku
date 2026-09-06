@@ -1,3 +1,4 @@
+import Modal from './Modal';
 const SHORTCUTS = [
   { keys: ['1', '–', '9'], desc: 'Place digit' },
   { keys: ['Shift', '+', '1–9'], desc: 'Corner note' },
@@ -18,7 +19,7 @@ interface KeyboardHelpProps {
 
 export default function KeyboardHelp({ onClose }: KeyboardHelpProps) {
   return (
-    <div
+    <Modal onDismiss={onClose}
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'var(--color-overlay-bg)' }}
       onClick={onClose}
@@ -71,6 +72,6 @@ export default function KeyboardHelp({ onClose }: KeyboardHelpProps) {
           ))}
         </ul>
       </div>
-    </div>
+    </Modal>
   );
 }

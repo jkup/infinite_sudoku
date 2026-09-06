@@ -1,3 +1,4 @@
+import Modal from '../ui/Modal';
 import { useTutorialStore } from '../../store/tutorialStore';
 import { TUTORIALS } from '../../data/tutorials';
 
@@ -20,7 +21,7 @@ export default function TutorialList() {
   if (phase !== 'list') return null;
 
   return (
-    <div
+    <Modal onDismiss={close}
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'var(--color-overlay-bg)' }}
       onClick={close}
@@ -106,6 +107,6 @@ export default function TutorialList() {
           })}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

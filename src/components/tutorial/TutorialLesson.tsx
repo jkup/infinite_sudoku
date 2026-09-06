@@ -1,3 +1,4 @@
+import Modal from '../ui/Modal';
 import { useTutorialStore, getTutorialById } from '../../store/tutorialStore';
 import TutorialBoard from './TutorialBoard';
 
@@ -13,7 +14,7 @@ export default function TutorialLesson() {
   if (!tutorial) return null;
 
   return (
-    <div
+    <Modal onDismiss={openList}
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'var(--color-overlay-bg)' }}
       role="dialog"
@@ -77,6 +78,6 @@ export default function TutorialLesson() {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

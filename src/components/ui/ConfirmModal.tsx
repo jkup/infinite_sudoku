@@ -1,3 +1,4 @@
+import Modal from './Modal';
 type ConfirmModalProps = {
   title: string;
   message: string;
@@ -16,7 +17,7 @@ export default function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   return (
-    <div
+    <Modal onDismiss={onCancel}
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'var(--color-overlay-bg)' }}
       onClick={onCancel}
@@ -46,6 +47,6 @@ export default function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -6,15 +6,9 @@ import type { Digit } from '../engine/types';
 export function useKeyboard(onToggleHelp?: () => void) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (e.defaultPrevented || document.querySelector('dialog[open], [data-game-popup]')) return;
+      if (e.target instanceof Element && e.target.closest('button, select, input, textarea, a, [contenteditable="true"], [role="dialog"]')) return;
       const state = useGameStore.getState();
-
-      // Don't handle if typing in an input
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
 
       // Digits 1-9 (or 1-6 for mini grids)
       const gridSize = state.grid.length || 9;

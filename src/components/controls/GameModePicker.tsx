@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+import { usePopup } from '../../hooks/usePopup';
 import { useGameStore } from '../../store/gameStore';
 import { DIFFICULTY_ORDER } from '../../engine/types';
 import type { Difficulty, GameMode } from '../../engine/types';
@@ -23,19 +24,7 @@ export default function GameModePicker({ onRequestNewGame }: Props) {
   const difficulty = useGameStore((s) => s.difficulty);
   const mode = useGameStore((s) => s.mode);
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  const { ref, triggerRef, id } = usePopup(open, () => setOpen(false));
 
   const modeLabel = MODES.find((m) => m.mode === mode)?.label ?? 'Classic';
   const diffLabel = DIFFICULTY_LABELS[difficulty];
@@ -43,6 +32,10 @@ export default function GameModePicker({ onRequestNewGame }: Props) {
   return (
     <div className="relative" ref={ref}>
       <button
+        ref={triggerRef}
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        aria-haspopup="dialog"
         onClick={() => setOpen(!open)}
         className="px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors flex items-center gap-1 whitespace-nowrap"
         style={{
@@ -56,6 +49,11 @@ export default function GameModePicker({ onRequestNewGame }: Props) {
 
       {open && (
         <div
+          id={id}
+          role="dialog"
+          aria-label="Game settings"
+          data-game-popup
+          tabIndex={-1}
           className="absolute left-0 top-full mt-1 z-50 rounded-lg border shadow-lg p-3 min-w-[200px]"
           style={{
             backgroundColor: 'var(--color-card-bg, var(--color-bg))',
@@ -71,6 +69,7 @@ export default function GameModePicker({ onRequestNewGame }: Props) {
               {MODES.map((m) => (
                 <button
                   key={m.mode}
+                  aria-pressed={mode === m.mode}
                   onClick={() => {
                     onRequestNewGame(difficulty, m.mode);
                     setOpen(false);
@@ -97,6 +96,7 @@ export default function GameModePicker({ onRequestNewGame }: Props) {
               {DIFFICULTY_ORDER.map((d) => (
                 <button
                   key={d}
+                  aria-pressed={difficulty === d}
                   onClick={() => {
                     onRequestNewGame(d, mode);
                     setOpen(false);

@@ -22,26 +22,15 @@ export default function Timer() {
       >
         {formatTime(elapsedMs)}
       </span>
-      {status === 'playing' && (
+      {(status === 'playing' || status === 'paused') && (
         <button
-          onClick={pauseGame}
+          onClick={status === 'playing' ? pauseGame : resumeGame}
           className="text-sm transition-colors"
           style={{ color: 'var(--color-text-muted)' }}
-          title="Pause (Space)"
-          aria-label="Pause game"
+          title={status === 'playing' ? 'Pause (Space)' : 'Resume (Space)'}
+          aria-label={status === 'playing' ? 'Pause game' : 'Resume game'}
         >
-          ⏸
-        </button>
-      )}
-      {status === 'paused' && (
-        <button
-          onClick={resumeGame}
-          className="text-sm transition-colors"
-          style={{ color: 'var(--color-text-muted)' }}
-          title="Resume (Space)"
-          aria-label="Resume game"
-        >
-          ▶
+          {status === 'playing' ? '⏸' : '▶'}
         </button>
       )}
     </div>

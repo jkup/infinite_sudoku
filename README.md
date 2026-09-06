@@ -73,6 +73,13 @@ the `functions/` routes, and connects `DB` to local D1 storage. See
 [docs/D1_MIGRATIONS.md](docs/D1_MIGRATIONS.md) for the append-only migration,
 backup, verification, and recovery procedure.
 
+## Accessibility
+
+The board supports keyboard navigation and entry. Dialogs contain focus and
+restore it on close; settings popups support Tab and Escape. See
+[accessibility behavior and verification](docs/ACCESSIBILITY.md) for controls,
+screen-reader verification, and the overlay regression checklist.
+
 ## Quality checks
 
 ```sh

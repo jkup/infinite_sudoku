@@ -1,3 +1,4 @@
+import Modal from './Modal';
 import { useState } from 'react';
 
 const STORAGE_KEY = 'infinite-sudoku-onboarded';
@@ -50,7 +51,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div
+    <Modal onDismiss={dismiss}
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'var(--color-overlay-bg)' }}
     >
@@ -117,6 +118,6 @@ export default function Onboarding() {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

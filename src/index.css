@@ -208,3 +208,22 @@ body {
 .hint-reveal {
   animation: hint-reveal-pulse 2s ease-out;
 }
+
+/* Full-viewport native dialogs retain existing overlay/card layouts. */
+.app-modal {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  color: var(--color-text);
+  overflow-y: auto;
+}
+.app-modal::backdrop { background: transparent; }
+.app-modal > div { max-height: 90dvh; overflow-y: auto; }
+:where(button, select, input, a):focus-visible {
+  outline: 3px solid var(--color-text);
+  outline-offset: 3px;
+}

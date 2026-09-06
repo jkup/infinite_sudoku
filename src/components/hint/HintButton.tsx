@@ -1,3 +1,4 @@
+import Modal from '../ui/Modal';
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useHintStore } from '../../store/hintStore';
@@ -44,6 +45,8 @@ export default function HintButton() {
           {isFreeHint ? 'Reveal' : 'Hint'}
         </button>
         <button
+          aria-label="How hints work"
+          aria-haspopup="dialog"
           onClick={() => setShowHelp(!showHelp)}
           className="w-9 h-9 rounded-lg text-sm font-bold flex-shrink-0 flex items-center justify-center transition-colors"
           style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-text-muted)' }}
@@ -55,9 +58,9 @@ export default function HintButton() {
       {/* Help tooltip */}
       {showHelp && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setShowHelp(false)} />
+          <Modal aria-label="How hints work" onDismiss={() => setShowHelp(false)} className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: 'var(--color-overlay-bg)' }}>
           <div
-            className="absolute bottom-full right-0 mb-2 w-72 rounded-xl shadow-lg border p-4 z-50"
+            className="w-72 rounded-xl shadow-lg border p-4 z-50"
             style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-cell-border)' }}
           >
             <h3 className="font-bold text-sm mb-2" style={{ color: 'var(--color-text)' }}>How Hints Work</h3>
@@ -89,6 +92,7 @@ export default function HintButton() {
               Got it
             </button>
           </div>
+          </Modal>
         </>
       )}
     </div>

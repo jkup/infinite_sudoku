@@ -499,6 +499,10 @@ a reload with identical state and no application errors (2026-09-03).
 ### A11Y-002: Make dialogs and menus accessible
 
 **Priority:** P1
+**Status:** Complete (2026-09-06)
+**Verification:** Keyboard/component regressions, Chrome desktop/mobile checks,
+and owner-confirmed VoiceOver dialog announcement; see
+[docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 **Scope**
 
 - Create or adopt shared dialog behavior with initial focus, focus trap, Escape close where allowed, labelled title/description, and focus restoration.

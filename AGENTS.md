@@ -33,18 +33,12 @@
 
 ## Current session handoff
 
-- Twenty of the 31 roadmap tasks are complete. The next task is `A11Y-001`:
-  implement a fully keyboard-operable Sudoku grid. No implementation changes for
-  this task have been made yet.
-- At the start of the next session, the user intends to say “try the incognito
-  test!” Use the browser-control skill to connect specifically to Chrome and
-  inspect the already-open incognito tab at `http://localhost:4173`.
-- The ChatGPT browser extension is installed and allowed in incognito. Its side
-  panel does not need to be prompted; Codex should control the page directly.
-- The previous connection attempt failed before browser discovery with
-  `Browser use requires a trusted Node REPL browser service`. The user is
-  restarting Codex to provision that service. If it still fails, follow the
-  browser skill's Chrome/bootstrap troubleshooting instructions before asking
-  the user to change more settings.
-- The intended browser check is the outstanding hands-on verification after
-  `OPS-005`, followed by implementation of `A11Y-001` in the roadmap order.
+- PWA/incognito verification and A11Y-001 keyboard grid work are complete.
+- A11Y-002 accessible dialogs and menus are complete. See
+  `docs/ACCESSIBILITY.md` for keyboard behavior and Chrome/VoiceOver verification.
+- The next roadmap task is A11Y-003: reduced motion and non-color status cues.
+- Continue one roadmap task at a time; verify, update docs, commit, and push each
+  task before moving on. Preserve the user-owned `TODO.md`.
+- Chrome browser control connected successfully in this session. The local Vite
+  app used `http://127.0.0.1:5173`; inspect current browser/server state before
+  assuming that tab or server still exists.

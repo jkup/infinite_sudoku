@@ -1,5 +1,7 @@
+import { usePopup } from './hooks/usePopup';
+import Modal from './components/ui/Modal';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ClerkProvider, SignIn, SignUp, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useGameStore } from './store/gameStore';
 import { useHintStore } from './store/hintStore';
@@ -63,27 +65,18 @@ function ThemePicker() {
 function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const { ref, triggerRef, id } = usePopup(open ? 'settings' : showStats ? 'stats' : false, () => { setOpen(false); setShowStats(false); });
   const checkAnswers = usePreferencesStore((s) => s.checkAnswers);
   const setCheckAnswers = usePreferencesStore((s) => s.setCheckAnswers);
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open && !showStats) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setShowStats(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open, showStats]);
 
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        ref={triggerRef}
+        aria-expanded={open || showStats}
+        aria-controls={open || showStats ? id : undefined}
+        aria-haspopup="dialog"
+        onClick={() => { setOpen(!open); setShowStats(false); }}
         className="w-9 h-9 flex items-center justify-center rounded-lg border transition-colors text-lg"
         style={{
           backgroundColor: 'var(--color-btn-bg)',
@@ -97,6 +90,11 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
 
       {open && (
         <div
+          id={id}
+          role="dialog"
+          aria-label="Settings"
+          data-game-popup
+          tabIndex={-1}
           className="absolute right-0 top-full mt-1 z-50 rounded-lg border shadow-lg p-3 min-w-[200px]"
           style={{
             backgroundColor: 'var(--color-card-bg, var(--color-bg))',
@@ -185,7 +183,7 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
 
       {/* Stats panel rendered outside the dropdown */}
       {showStats && (
-        <div className="absolute right-0 top-full mt-12 z-40 w-[min(90vw,400px)]">
+        <div id={id} role="dialog" aria-label="Statistics" data-game-popup tabIndex={-1} className="absolute right-0 top-full mt-12 z-40 w-[min(90vw,400px)]">
           <div
             className="rounded-lg border shadow-lg p-3"
             style={{
@@ -193,6 +191,7 @@ function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
               borderColor: 'var(--color-cell-border)',
             }}
           >
+            <button onClick={() => setShowStats(false)} aria-label="Close statistics">Close</button>
             {CLERK_KEY ? (
               <StatsPanel />
             ) : (
@@ -497,7 +496,7 @@ function GameScreen() {
       {(tutorialFocusDone || status === 'completed') && isInTutorialPractice && (
         <>
         <Confetti />
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Tutorial complete">
+        <Modal className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Tutorial complete">
           <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127891;</div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
@@ -514,7 +513,7 @@ function GameScreen() {
               Continue
             </button>
           </div>
-        </div>
+        </Modal>
         </>
       )}
 
@@ -527,7 +526,7 @@ function GameScreen() {
 
       {/* Completion overlay — different for hint puzzles vs regular */}
       {status === 'completed' && !isInTutorialPractice && isInHintStack && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Hint earned">
+        <Modal className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Hint earned">
           <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127881;</div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
@@ -544,13 +543,13 @@ function GameScreen() {
               Claim Hint
             </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {status === 'completed' && !isInTutorialPractice && !isInHintStack && (
         <>
         <Confetti />
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Puzzle complete">
+        <Modal className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="dialog" aria-modal="true" aria-label="Puzzle complete">
           <div className="rounded-2xl p-8 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             <div className="text-4xl mb-3">&#127942;</div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
@@ -577,13 +576,13 @@ function GameScreen() {
               New Game
             </button>
           </div>
-        </div>
+        </Modal>
         </>
       )}
 
       {/* Paused overlay */}
       {status === 'paused' && (
-        <div
+        <Modal onDismiss={() => useGameStore.getState().resumeGame()}
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{ backgroundColor: 'var(--color-overlay-bg)' }}
           role="dialog" aria-modal="true" aria-label="Game paused"
@@ -598,7 +597,7 @@ function GameScreen() {
               Resume
             </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Keyboard help overlay */}
