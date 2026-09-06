@@ -28,6 +28,11 @@ function unauthorized(): Response {
   return Response.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
+/** API routes that serve the same public data to everyone and need no identity. */
+function isPublicApiRoute(request: Request, url: URL): boolean {
+  return request.method === 'GET' && url.pathname === '/api/daily';
+}
+
 export const onRequest: PagesFunction<Cloudflare.Env>[] = [
   async (context) => {
     const { request, env, data } = context;
@@ -57,6 +62,18 @@ export const onRequest: PagesFunction<Cloudflare.Env>[] = [
       else console.info(entry);
       return secured;
     };
+
+    if (isPublicApiRoute(request, url)) {
+      try {
+        return finish(await context.next());
+      } catch (error) {
+        console.error(JSON.stringify({
+          message: 'API handler threw', requestId, endpoint: url.pathname,
+          failureCategory: 'unexpected', errorType: error instanceof Error ? error.name : 'UnknownError',
+        }));
+        return finish(Response.json({ error: 'Internal server error' }, { status: 500 }), 'unexpected');
+      }
+    }
 
     if (!env.CLERK_SECRET || !env.CLERK_PUBLIC) {
       return finish(unauthorized(), 'authentication');

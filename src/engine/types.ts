@@ -30,6 +30,12 @@ export type GameStatus = 'playing' | 'paused' | 'completed';
 
 export type InputMode = 'digit' | 'corner' | 'center' | 'color';
 
+/** Identity of a canonical daily puzzle row; see docs/DAILY_RULES.md. */
+export type DailyPuzzleRef = {
+  id: number;
+  date: string; // YYYY-MM-DD, UTC
+};
+
 export type Puzzle = {
   initial: (Digit | null)[][]; // grid of initial values
   solution: Digit[][];         // solved grid
@@ -38,6 +44,7 @@ export type Puzzle = {
   gridSize: number;            // 6 or 9
   cages?: Cage[];              // Only for killer mode
   completionId?: string;       // Stable identity for idempotent top-level completion
+  daily?: DailyPuzzleRef;      // Present when this is a canonical daily puzzle
 };
 
 /** A snapshot of one cell's before/after state within a single undoable action. */

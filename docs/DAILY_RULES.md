@@ -13,6 +13,13 @@
   it to one. Replaying an earlier date never rewinds or changes a streak.
 - Ordinary generated games contribute to aggregate games, hints, and score but
   never change daily streak fields.
+- Difficulty follows the UTC weekday: Monday and Tuesday are easy, Wednesday and
+  Thursday medium, Friday and Saturday hard, Sunday expert. The rotation lives
+  in `src/lib/daily.ts` and is shared by the generator script and the API.
+- `GET /api/daily?mode=classic|killer[&date=YYYY-MM-DD]` is public and serves the
+  canonical puzzle, including its solution, exactly as any generated game would
+  hold it client-side. It never serves a date later than the current UTC date,
+  so nobody can pre-solve tomorrow. Past dates remain available for replay.
 
 The canonical puzzle date, rather than request arrival time or a player's local
 timezone, controls streak behavior. This keeps a completion stable around local

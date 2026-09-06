@@ -44,6 +44,28 @@ describe('API authentication middleware', () => {
     expect(createClerkClient).not.toHaveBeenCalled();
   });
 
+  it('serves the public daily puzzle route without authentication', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const context = contextFor('/api/daily?mode=classic', { CLERK_SECRET: '' });
+    const response = await onRequest[0](context);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('next');
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(response.headers.get('X-Request-ID')).toMatch(/^[0-9a-f-]{36}$/);
+    expect(createClerkClient).not.toHaveBeenCalled();
+    expect(context.data).toEqual({});
+  });
+
+  it('still authenticates non-GET requests to the daily route', async () => {
+    authenticateRequest.mockResolvedValue({ isAuthenticated: false, toAuth: () => ({ userId: null }) });
+    const context = contextFor('/api/daily');
+    (context as { request: Request }).request = new Request('https://infinitesudoku.com/api/daily', { method: 'POST' });
+    const response = await onRequest[0](context);
+    expect(response.status).toBe(401);
+    expect(context.next).not.toHaveBeenCalled();
+  });
+
   it('passes a verified user ID to downstream API handlers', async () => {
     const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     authenticateRequest.mockResolvedValue({
