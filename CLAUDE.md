@@ -80,7 +80,7 @@ Sign-in uses a dedicated `/sign-in` route with Clerk's `<SignIn />` component (n
 
 ## Environment Variables
 
-Create a `.dev.vars` file for local development:
+Copy `.dev.vars.example` to `.dev.vars` and fill in the values for local development:
 
 ```
 CLERK_PUBLIC=pk_test_...
@@ -88,6 +88,11 @@ CLERK_SECRET=sk_test_...
 ```
 
 The app works without Clerk keys — auth features are gracefully disabled.
+
+`worker-configuration.d.ts` is generated from `wrangler.jsonc` plus the variable names in
+`.dev.vars.example` (via `--env-file`), never from your local `.dev.vars`. When you add a
+Pages runtime variable, add its name to `.dev.vars.example` and run `npm run types:cloudflare`;
+CI runs `npm run types:check` and fails if the committed file is stale.
 
 ## Key Files to Know
 

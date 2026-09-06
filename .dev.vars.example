@@ -1,4 +1,9 @@
-# Safe placeholders only. Copy to .dev.vars and replace locally.
-CLERK_PUBLIC=pk_test_replace_me
-CLERK_SECRET=sk_test_replace_me
-CLERK_AUTHORIZED_PARTIES=http://localhost:5173
+# Copy to .dev.vars and fill in real values for local Pages development.
+# This file is also the committed source of truth for `wrangler types`
+# (see the types:* scripts in package.json), so CI generates the same
+# CloudflareEnv interface as a local checkout. Keep the variable names
+# in sync with functions/_middleware.ts; leave the values empty here.
+CLERK_PUBLIC=
+CLERK_SECRET=
+# Optional: comma-separated origins allowed to present session tokens.
+# CLERK_AUTHORIZED_PARTIES=
