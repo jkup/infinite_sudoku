@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "engines": { "node": ">=22 <25" },
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "dev": "vite",
     "build": "npm run typecheck && vite build",
@@ -19,7 +21,8 @@
     "test:pwa": "node scripts/verify-pwa.mjs",
     "check": "npm run types:check && npm run lint -- --max-warnings=0 && npm run test:coverage && npm run test:workers && npm run build && npm run test:pwa",
     "preview": "vite preview",
-    "dev:full": "wrangler pages dev -- vite"
+    "dev:full": "wrangler pages dev -- vite",
+    "daily:generate": "tsx scripts/generate-daily.ts"
   },
   "dependencies": {
     "@clerk/backend": "^3.17.1",
@@ -47,6 +50,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "jsdom": "^29.1.1",
+    "tsx": "^4.23.13",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",

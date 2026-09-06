@@ -73,6 +73,24 @@ the `functions/` routes, and connects `DB` to local D1 storage. See
 [docs/D1_MIGRATIONS.md](docs/D1_MIGRATIONS.md) for the append-only migration,
 backup, verification, and recovery procedure.
 
+## Daily puzzles
+
+One canonical puzzle per mode exists for each UTC date; difficulty follows a
+weekday rotation. Hard and expert generation takes seconds to tens of seconds,
+so puzzles are generated ahead of time rather than on request. The script reads
+which rows already exist, generates only the missing ones with the shared
+engine, and inserts them idempotently:
+
+```sh
+npm run daily:generate -- --local              # top up the next 7 days in local D1
+npm run daily:generate -- --days 14            # remote D1 via your Wrangler login
+npm run daily:generate -- --from 2026-12-24 --days 3 --dry-run   # print SQL only
+```
+
+`GET /api/daily?mode=classic|killer[&date=YYYY-MM-DD]` serves a puzzle and is
+the only public API route. See [docs/DAILY_RULES.md](docs/DAILY_RULES.md) for
+the identity, streak, and rotation rules.
+
 ## Accessibility
 
 The board supports keyboard navigation and entry. Dialogs contain focus and
