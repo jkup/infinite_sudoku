@@ -1,7 +1,11 @@
 import { env } from 'cloudflare:workers';
 import { applyD1Migrations, createPagesEventContext } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { onRequestGet as getLeaderboard } from './leaderboard';
+
+const { fetchDisplayName } = vi.hoisted(() => ({ fetchDisplayName: vi.fn() }));
+vi.mock('../lib/displayName', () => ({ fetchDisplayName }));
+
+import { onRequestGet as getLeaderboard, type LeaderboardResponse } from './leaderboard';
 import { onRequestGet as getStats, onRequestPost as postStats } from './stats';
 
 const userId = 'user_integration_test';
@@ -49,7 +53,10 @@ async function clearDatabase() {
 
 describe('Pages Functions with D1', () => {
   beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
-  beforeEach(clearDatabase);
+  beforeEach(async () => {
+    fetchDisplayName.mockReset().mockResolvedValue(null);
+    await clearDatabase();
+  });
 
   it('returns zeroed stats for a new authenticated user', async () => {
     const response = await getStats(statsGetContext());
@@ -266,28 +273,63 @@ describe('Pages Functions with D1', () => {
     expect(response.status).toBe(413);
   });
 
-  it('requires a date for leaderboard queries', async () => {
-    const response = await getLeaderboard(leaderboardContext(''));
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'date parameter required' });
+  it('caches the Clerk display name on completion and keeps it when a lookup fails', async () => {
+    const result = {
+      completionId, mode: 'classic', difficulty: 'easy', solveTimeMs: 90_000,
+      hintsUsed: 0, maxHintDepth: 0, errorsMade: 0,
+    };
+    fetchDisplayName.mockResolvedValueOnce('Ada L.');
+    expect((await postStats(statsPostContext(result))).status).toBe(200);
+    expect(fetchDisplayName).toHaveBeenCalledWith(expect.anything(), userId);
+    const name = () => env.DB.prepare('SELECT display_name FROM user_stats WHERE clerk_user_id = ?').bind(userId).first('display_name');
+    expect(await name()).toBe('Ada L.');
+
+    fetchDisplayName.mockResolvedValueOnce(null);
+    expect((await postStats(statsPostContext({ ...result, completionId: 'c0ffee00-0000-4000-8000-000000000002' }))).status).toBe(200);
+    expect(await name()).toBe('Ada L.');
   });
 
-  it('returns ranked daily results for the requested mode only', async () => {
+  it.each([
+    ['a missing date', '', 'date parameter required'],
+    ['a malformed date', '?date=2026-9-2&mode=classic', 'Invalid date'],
+    ['an unknown mode', '?date=2026-09-02&mode=cheat', 'Invalid mode'],
+  ])('rejects leaderboard queries with %s', async (_case, query, error) => {
+    const response = await getLeaderboard(leaderboardContext(query));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error });
+  });
+
+  it('returns ranked, named daily results for the requested mode without exposing user IDs', async () => {
     await env.DB.prepare(
-      `INSERT INTO user_stats (clerk_user_id) VALUES (?), (?)`,
-    ).bind('user_one', 'user_two').run();
+      `INSERT INTO user_stats (clerk_user_id, display_name) VALUES (?, 'One'), (?, NULL), (?, 'Me')`,
+    ).bind('user_one', 'user_two', userId).run();
     await env.DB.prepare(
       `INSERT INTO game_results
-       (clerk_user_id, mode, difficulty, solve_time_ms, score, is_daily, daily_date, completion_id, daily_puzzle_id)
-       VALUES (?, 'classic', 'easy', 60000, 800, 1, '2026-09-02', ?, 101),
-              (?, 'classic', 'hard', 120000, 1200, 1, '2026-09-02', ?, 102),
-              (?, 'killer', 'easy', 70000, 5000, 1, '2026-09-02', ?, 103)`,
-    ).bind('user_one', crypto.randomUUID(), 'user_two', crypto.randomUUID(), 'user_one', crypto.randomUUID()).run();
+       (clerk_user_id, mode, difficulty, solve_time_ms, score, is_daily, daily_date, completion_id, daily_puzzle_id, completed_at)
+       VALUES (?, 'classic', 'easy', 60000, 800, 1, '2026-09-02', ?, 101, '2026-09-02 10:00:00'),
+              (?, 'classic', 'hard', 120000, 1200, 1, '2026-09-02', ?, 102, '2026-09-02 11:00:00'),
+              (?, 'classic', 'easy', 50000, 800, 1, '2026-09-02', ?, 103, '2026-09-02 12:00:00'),
+              (?, 'killer', 'easy', 70000, 5000, 1, '2026-09-02', ?, 104, '2026-09-02 09:00:00')`,
+    ).bind(
+      'user_one', crypto.randomUUID(), 'user_two', crypto.randomUUID(),
+      userId, crypto.randomUUID(), 'user_one', crypto.randomUUID(),
+    ).run();
 
-    const response = await getLeaderboard(leaderboardContext());
-    const entries = await response.json<Array<{ clerkUserId: string; score: number }>>();
-    expect(entries).toHaveLength(2);
-    expect(entries.map((entry) => entry.score)).toEqual([1200, 800]);
-    expect(entries.map((entry) => entry.clerkUserId)).toEqual(['user_two', 'user_one']);
+    const body = await (await getLeaderboard(leaderboardContext())).json<LeaderboardResponse>();
+    expect(body.date).toBe('2026-09-02');
+    expect(body.mode).toBe('classic');
+    expect(body.totalEntries).toBe(3);
+    expect(body.entries.map((entry) => [entry.rank, entry.displayName, entry.score, entry.isYou])).toEqual([
+      [1, null, 1200, false],
+      [2, 'One', 800, false], // ties break on earliest completion
+      [3, 'Me', 800, true],
+    ]);
+    expect(body.you).toEqual({ rank: 3, score: 800, solveTimeMs: 50_000 });
+    expect(JSON.stringify(body)).not.toContain('user_');
+  });
+
+  it('reports the caller as absent when they have no result for that daily', async () => {
+    const body = await (await getLeaderboard(leaderboardContext())).json<LeaderboardResponse>();
+    expect(body).toEqual({ date: '2026-09-02', mode: 'classic', entries: [], you: null, totalEntries: 0 });
   });
 });

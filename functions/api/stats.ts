@@ -2,6 +2,7 @@
 // POST /api/stats — save game result and update user stats
 
 import { parseGameResult, RequestValidationError } from '../lib/gameResult';
+import { fetchDisplayName } from '../lib/displayName';
 
 type RequestData = {
   clerkUserId: string;
@@ -61,6 +62,8 @@ export const onRequestPost: PagesFunction<Cloudflare.Env, string, RequestData> =
     }
 
     const dailyDate = daily?.date ?? null;
+    // Refresh the cached public name; a failed lookup keeps the previous value.
+    const displayName = await fetchDisplayName(context.env, userId);
 
     await DB.batch([
       DB.prepare(
@@ -69,6 +72,9 @@ export const onRequestPost: PagesFunction<Cloudflare.Env, string, RequestData> =
          VALUES (?, 0, 0, 0, 0, 0)
          ON CONFLICT(clerk_user_id) DO NOTHING`,
       ).bind(userId),
+      DB.prepare(
+        'UPDATE user_stats SET display_name = ? WHERE clerk_user_id = ? AND ? IS NOT NULL',
+      ).bind(displayName, userId, displayName),
       DB.prepare(
         `INSERT INTO game_results
          (clerk_user_id, mode, difficulty, solve_time_ms, hints_used, max_hint_depth,

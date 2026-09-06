@@ -16,6 +16,11 @@
 - Difficulty follows the UTC weekday: Monday and Tuesday are easy, Wednesday and
   Thursday medium, Friday and Saturday hard, Sunday expert. The rotation lives
   in `src/lib/daily.ts` and is shared by the generator script and the API.
+- `GET /api/leaderboard?date=YYYY-MM-DD&mode=classic|killer` ranks counted daily
+  results by score, then earliest completion. It returns cached display names
+  only, never Clerk user IDs, and marks the caller's own row. The display name
+  is refreshed from Clerk (username, else first name plus last initial) on each
+  counted completion and kept when a lookup fails.
 - `GET /api/daily?mode=classic|killer[&date=YYYY-MM-DD]` is public and serves the
   canonical puzzle, including its solution, exactly as any generated game would
   hold it client-side. It never serves a date later than the current UTC date,
