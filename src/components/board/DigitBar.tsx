@@ -33,14 +33,15 @@ export default function DigitBar() {
             onClick={() => placeDigit(d)}
             disabled={complete}
             aria-label={`Place digit ${d}${complete ? ', all placed' : ''}`}
-            className="py-3 rounded-lg text-2xl font-bold flex items-center justify-center transition-all duration-100"
+            className="relative py-3 rounded-lg text-2xl font-bold flex items-center justify-center transition-all duration-100"
             style={
               complete
-                ? { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-cell-border)', cursor: 'default' }
+                ? { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-text-muted)', cursor: 'default' }
                 : { backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-text)', cursor: 'pointer' }
             }
           >
             {d}
+            {complete && <span aria-hidden="true" className="absolute top-0.5 right-1 text-xs leading-none">✓</span>}
           </button>
         );
       })}

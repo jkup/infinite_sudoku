@@ -76,7 +76,9 @@ backup, verification, and recovery procedure.
 ## Accessibility
 
 The board supports keyboard navigation and entry. Dialogs contain focus and
-restore it on close; settings popups support Tab and Escape. See
+restore it on close; settings popups support Tab and Escape. Reduced-motion
+preferences disable decorative movement. Shapes and text supplement status
+colors, and all four theme palettes have automated contrast checks. See
 [accessibility behavior and verification](docs/ACCESSIBILITY.md) for controls,
 screen-reader verification, and the overlay regression checklist.
 

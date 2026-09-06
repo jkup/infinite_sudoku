@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 const PARTICLE_COUNT = 60;
@@ -26,6 +27,7 @@ function makeParticles(): Particle[] {
 }
 
 export default function Confetti() {
+  const reducedMotion = useReducedMotion();
   const [particles] = useState(makeParticles);
   const [visible, setVisible] = useState(true);
 
@@ -34,10 +36,10 @@ export default function Confetti() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (!visible) return null;
+  if (!visible || reducedMotion) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden">
+    <div aria-hidden="true" className="confetti fixed inset-0 pointer-events-none z-[60] overflow-hidden">
       <style>{`
         @keyframes confetti-fall {
           0% { transform: translateY(-20px) translateX(0) rotate(0deg); opacity: 1; }

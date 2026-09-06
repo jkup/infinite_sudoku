@@ -45,4 +45,55 @@ while a modal or popup is open. Long dialog cards scroll within the viewport.
 
 For future overlay changes, repeat those interactions with keyboard and
 VoiceOver/Chrome, check narrow layouts and each theme, and run `npm run check`.
-Reduced motion and additional non-color status cues are tracked by A11Y-003.
+
+## Motion and non-color cues
+
+The app follows `prefers-reduced-motion` and responds when that preference changes
+without reloading. Reduced motion removes board slides, hint pulses, CSS
+transitions, and confetti. Revealed hints retain a static outline for two seconds;
+completion text and actions remain available. Changing the preference back does
+not replay an expired celebration.
+
+Color is supplemented by persistent visual cues:
+
+- Selected cells have an inset outline, in addition to the keyboard focus ring.
+- Conflicting digits have a wavy underline and an accessible invalid state.
+- Selected input modes and game-setting choices have underlined labels and
+  `aria-pressed` state.
+- Fully placed digits have visible checkmarks and disabled, “all placed” labels.
+- Tutorial targets have double outlines; primary and secondary clues use solid
+  and dashed outlines. The lesson includes a legend and cell descriptions.
+  Practice targets remain marked after an incorrect entry, until solved.
+- Onboarding shows a textual step count alongside its decorative progress dots.
+
+## Contrast policy and A11Y-003 verification — 2026-09-06
+
+Theme tests use the WCAG relative-luminance formula and require at least **4.5:1**
+for text, including small notes and mobile digits, and **3:1** for cell/box/cage
+boundaries and state/focus outlines against applicable board backgrounds. These
+thresholds follow [WCAG 2.2](https://www.w3.org/TR/WCAG22/#contrast-minimum) and
+[non-text contrast guidance](https://www.w3.org/WAI/WCAG21/understanding/non-text-contrast.html).
+
+`tests/themeContrast.test.ts` reads the actual stylesheet tokens for light, dark,
+newspaper, and high-contrast themes. It checks normal, selected, conflict,
+matching-digit, and tutorial backgrounds as applicable. The Node TypeScript
+project includes this filesystem-based test. Token checks do not establish whole
+page WCAG conformance or assess third-party Clerk UI and browser-native widgets.
+
+Automated component checks cover reduced motion on initial render, live
+preference changes, listener cleanup, expired celebrations, completed-digit
+checkmarks, mode switching, and tutorial target descriptions. CSS disables all
+animations/transitions under the reduced-motion media query, while the React
+preference subscription also suppresses board-slide classes and confetti.
+
+Chrome visual checks covered conflicts, selected modes/cells, notes and tutorial
+outlines at desktop and 375px mobile width across the four themes. High-contrast
+keyboard focus remained visible, and the tested mobile views had no horizontal
+overflow. The automated motion checks use a mocked `matchMedia`; they do not
+constitute a manual macOS preference-toggle test.
+
+For a manual motion smoke check, enable macOS Accessibility → Display → Reduce
+motion, reveal an empty Easy cell, and verify the answer has a static outline.
+Enter/leave a nested hint puzzle and verify there is no slide; completion should
+show its summary without confetti. Toggle the preference during an open session
+to check that it applies without reloading.

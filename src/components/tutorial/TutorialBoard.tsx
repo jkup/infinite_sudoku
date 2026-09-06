@@ -30,7 +30,7 @@ export default function TutorialBoard({ board, highlightCells, highlightNotes }:
   // Build lookup maps for fast access
   const highlightMap = new Map<string, string>();
   for (const h of highlightCells) {
-    highlightMap.set(`${h.row},${h.col}`, COLOR_MAP[h.color]);
+    highlightMap.set(`${h.row},${h.col}`, h.color);
   }
 
   const notesMap = new Map<string, Digit[]>();
@@ -41,6 +41,7 @@ export default function TutorialBoard({ board, highlightCells, highlightNotes }:
   }
 
   return (
+    <figure>
     <div
       className="grid w-full max-w-[280px] mx-auto border-2 rounded-md"
       style={{
@@ -51,7 +52,8 @@ export default function TutorialBoard({ board, highlightCells, highlightNotes }:
       {board.flatMap((row, r) =>
         row.map((digit, c) => {
           const key = `${r},${c}`;
-          const bg = highlightMap.get(key) ?? 'var(--color-cell-bg)';
+          const highlight = highlightMap.get(key);
+          const bg = highlight ? COLOR_MAP[highlight] : 'var(--color-cell-bg)';
           const notes = notesMap.get(key);
 
           const borderStyle: CSSProperties = {
@@ -65,7 +67,10 @@ export default function TutorialBoard({ board, highlightCells, highlightNotes }:
           return (
             <div
               key={key}
-              className="relative flex items-center justify-center aspect-square"
+              className={`relative flex items-center justify-center aspect-square${highlight ? ' tutorial-mark' : ''}`}
+              data-highlight={highlight}
+              role="img"
+              aria-label={`Row ${r + 1}, Column ${c + 1}, ${digit ? `value ${digit}` : notes?.length ? `notes ${notes.join(' ')}` : 'empty'}${highlight ? `, ${highlight === 'target' ? 'tutorial target' : `${highlight} clue`}` : ''}`}
               style={borderStyle}
             >
               {digit ? (
@@ -109,5 +114,9 @@ export default function TutorialBoard({ board, highlightCells, highlightNotes }:
         })
       )}
     </div>
+    <figcaption className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
+      Double outline: target. Solid outline: primary clues. Dashed outline: secondary clues.
+    </figcaption>
+    </figure>
   );
 }

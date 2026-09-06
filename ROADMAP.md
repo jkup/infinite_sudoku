@@ -521,6 +521,10 @@ and owner-confirmed VoiceOver dialog announcement; see
 ### A11Y-003: Support reduced motion and non-color status cues
 
 **Priority:** P2
+**Status:** Complete (2026-09-06)
+**Verification:** Motion-preference and status-cue component regressions,
+four-theme contrast tests, and Chrome desktop/mobile visual checks; see
+[docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 **Scope**
 
 - Respect `prefers-reduced-motion` for board slides, hint pulses, transitions, and confetti.

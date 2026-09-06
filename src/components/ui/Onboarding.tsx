@@ -66,8 +66,9 @@ export default function Onboarding() {
           {current.body}
         </p>
 
+        <p className="text-xs text-center mb-2" style={{ color: 'var(--color-text-muted)' }}>Step {step + 1} of {STEPS.length}</p>
         {/* Progress dots */}
-        <div className="flex items-center justify-center gap-1.5 mb-4">
+        <div aria-hidden="true" className="flex items-center justify-center gap-1.5 mb-4">
           {STEPS.map((_, i) => (
             <div
               key={i}

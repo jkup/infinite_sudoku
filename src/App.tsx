@@ -1,3 +1,4 @@
+import { useReducedMotion } from './hooks/useReducedMotion';
 import { usePopup } from './hooks/usePopup';
 import Modal from './components/ui/Modal';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
@@ -312,7 +313,8 @@ function GameScreen() {
       grid[row]?.[col]?.digit === activeTutorial.practicePuzzle.solution[row]?.[col]
     )
   );
-  const boardAnim = hintTransition
+  const reducedMotion = useReducedMotion();
+  const boardAnim = hintTransition && !reducedMotion
     ? hintTransition === 'deeper' ? 'board-slide-left' : 'board-slide-right'
     : null;
 
@@ -432,6 +434,7 @@ function GameScreen() {
           >
             <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
               Tutorial: {activeTutorial.name}
+              <span className="block text-xs font-normal mt-1">Fill the double-outlined target cells.</span>
             </span>
             <button
               onClick={abandonPractice}
@@ -538,7 +541,8 @@ function GameScreen() {
             </p>
             <button
               onClick={completeHintPuzzle}
-              className="px-6 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 active:bg-amber-700 transition-colors"
+              className="px-6 py-3 rounded-xl font-semibold transition-colors"
+              style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
             >
               Claim Hint
             </button>

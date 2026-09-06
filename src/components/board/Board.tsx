@@ -143,7 +143,7 @@ export default function Board() {
               isDigitMatch={isDigitMatch(row, col)}
               isConflict={isConflict}
               isHintReveal={hintRevealCell !== null && hintRevealCell.row === row && hintRevealCell.col === col}
-              isTutorialTarget={tutorialFocusSet !== null && cell.digit === null && tutorialFocusSet.has(`${row},${col}`)}
+              isTutorialTarget={tutorialFocusSet !== null && cell.digit !== puzzle?.solution[row][col] && tutorialFocusSet.has(`${row},${col}`)}
               isKillerMode={!!isKiller}
               cageSum={cageLabels.get(`${row},${col}`) ?? null}
               gridSize={gridSize}

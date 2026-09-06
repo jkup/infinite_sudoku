@@ -36,7 +36,10 @@
 - PWA/incognito verification and A11Y-001 keyboard grid work are complete.
 - A11Y-002 accessible dialogs and menus are complete. See
   `docs/ACCESSIBILITY.md` for keyboard behavior and Chrome/VoiceOver verification.
-- The next roadmap task is A11Y-003: reduced motion and non-color status cues.
+- A11Y-003 reduced motion, non-color status cues, and theme contrast are complete.
+  Automated motion/contrast checks and browser visual checks are documented in
+  `docs/ACCESSIBILITY.md`.
+- The next roadmap task is UI-001: resilient generation, error, and empty states.
 - Continue one roadmap task at a time; verify, update docs, commit, and push each
   task before moving on. Preserve the user-owned `TODO.md`.
 - Chrome browser control connected successfully in this session. The local Vite

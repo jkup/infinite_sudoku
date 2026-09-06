@@ -60,13 +60,13 @@ function CellComponent({ cell, isSelected, isTabStop, isHighlighted, isDigitMatc
     : 'var(--color-digit-placed)';
 
   // Border styles
-  // In killer mode: faint cell grid + thick solid box boundaries; cage dashes come from SVG overlay
-  const killerFaint = '1px solid color-mix(in srgb, var(--color-cell-border) 40%, transparent)';
+  // Keep cell boundaries legible in killer mode; cage dashes come from SVG overlay.
+  const killerThin = '1px solid var(--color-cell-border)';
   const killerThick = '2px solid var(--color-board-border)';
   const borderStyle: CSSProperties = isKillerMode
     ? {
-        borderTop:    row === 0 ? 'none' : row % boxRows === 0 ? killerThick : killerFaint,
-        borderLeft:   col === 0 ? 'none' : col % boxCols === 0 ? killerThick : killerFaint,
+        borderTop:    row === 0 ? 'none' : row % boxRows === 0 ? killerThick : killerThin,
+        borderLeft:   col === 0 ? 'none' : col % boxCols === 0 ? killerThick : killerThin,
         borderRight:  col === lastIdx ? 'none' : 'none',
         borderBottom: row === lastIdx ? 'none' : 'none',
         backgroundColor: bgColor,
@@ -93,8 +93,9 @@ function CellComponent({ cell, isSelected, isTabStop, isHighlighted, isDigitMatc
 
   return (
     <div
-      className={`sudoku-cell relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none${isHintReveal ? ' hint-reveal' : ''}`}
+      className={`sudoku-cell relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none${isHintReveal ? ' hint-reveal' : ''}${isTutorialTarget ? ' tutorial-mark' : ''}`}
       style={borderStyle}
+      data-highlight={isTutorialTarget ? 'target' : undefined}
       data-cell={`${row},${col}`}
       onPointerDown={handlePointerDown}
       onFocus={() => onFocus(position)}
@@ -106,7 +107,7 @@ function CellComponent({ cell, isSelected, isTabStop, isHighlighted, isDigitMatc
       aria-invalid={isConflict || undefined}
       aria-label={`Row ${row + 1}, Column ${col + 1}${
         digit ? `, value ${digit}` : ', empty'
-      }, ${isGiven ? 'given' : 'editable'}${isConflict ? ', conflict' : ''}${notesLabel}${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
+      }, ${isGiven ? 'given' : 'editable'}${isConflict ? ', conflict' : ''}${isTutorialTarget ? ', tutorial target' : ''}${isHintReveal ? ', hint revealed' : ''}${notesLabel}${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
     >
       {/* Killer cage sum label */}
       {cageSum !== null && (
@@ -120,7 +121,7 @@ function CellComponent({ cell, isSelected, isTabStop, isHighlighted, isDigitMatc
 
       {digit ? (
         <span
-          className="font-semibold leading-none"
+          className="cell-digit font-semibold leading-none"
           style={{
             color: digitColor,
             fontSize: 'clamp(0.9rem, 4.5cqi, 2.2rem)',
