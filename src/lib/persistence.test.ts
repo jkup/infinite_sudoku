@@ -63,6 +63,31 @@ describe('game persistence', () => {
     expect(restored?.puzzle).not.toHaveProperty('daily');
   });
 
+  it('round-trips cell colors and color history, and rejects an invalid color', () => {
+    const grid = gridFromValues(puzzle.initial, true);
+    grid[0][0].colorIndex = 3;
+    const base = {
+      grid, puzzle, mode: 'classic' as const, difficulty: 'easy' as const, status: 'playing' as const,
+      inputMode: 'color' as const, historyIndex: 0, elapsedMs: 0, hintsUsed: 0, errorsMade: 0, submittedCompletionId: null,
+      history: [{ changes: [{
+        position: { row: 0, col: 0 }, previousDigit: null, newDigit: null,
+        previousCornerNotes: new Set<Digit>(), newCornerNotes: new Set<Digit>(),
+        previousCenterNotes: new Set<Digit>(), newCenterNotes: new Set<Digit>(),
+        previousColorIndex: null, newColorIndex: 3,
+      }] }],
+    };
+    saveGame(base);
+    const restored = loadGame();
+    expect(restored?.grid[0][0].colorIndex).toBe(3);
+    expect(restored?.inputMode).toBe('color');
+    expect(restored?.history[0].changes[0]).toMatchObject({ previousColorIndex: null, newColorIndex: 3 });
+
+    const raw = JSON.parse(localStorage.getItem('infinite-sudoku-save')!);
+    raw.grid[0][0].colorIndex = 42;
+    localStorage.setItem('infinite-sudoku-save', JSON.stringify(raw));
+    expect(loadGame()).toBeNull();
+  });
+
   it('returns null for malformed or unsupported saved data', () => {
     localStorage.setItem('infinite-sudoku-save', '{bad json');
     expect(loadGame()).toBeNull();

@@ -160,6 +160,51 @@ describe('game store transitions', () => {
     expect(mockGeneratePuzzleAsync).toHaveBeenLastCalledWith('hard', 'killer');
   });
 
+  it('paints, toggles, and clears cell colors with undo and redo', () => {
+    const game = useGameStore.getState();
+    game.selectCell({ row: 0, col: 0 });
+    game.paintCell(2);
+    expect(useGameStore.getState().grid[0][0].colorIndex).toBe(2);
+    expect(useGameStore.getState().history).toHaveLength(1);
+
+    useGameStore.getState().paintCell(2); // same color toggles off
+    expect(useGameStore.getState().grid[0][0].colorIndex).toBeNull();
+    useGameStore.getState().paintCell(5);
+    useGameStore.getState().paintCell(9); // out of range: ignored
+    expect(useGameStore.getState().grid[0][0].colorIndex).toBe(5);
+
+    useGameStore.getState().undo();
+    expect(useGameStore.getState().grid[0][0].colorIndex).toBeNull();
+    useGameStore.getState().redo();
+    expect(useGameStore.getState().grid[0][0].colorIndex).toBe(5);
+  });
+
+  it('paints givens, and erase clears only the color on a given', () => {
+    const game = useGameStore.getState();
+    game.selectCell({ row: 0, col: 1 }); // a given cell
+    game.paintCell(0);
+    expect(useGameStore.getState().grid[0][1].colorIndex).toBe(0);
+    useGameStore.getState().eraseCell();
+    expect(useGameStore.getState().grid[0][1].colorIndex).toBeNull();
+    expect(useGameStore.getState().grid[0][1].digit).toBe(solution[0][1]);
+  });
+
+  it('routes digit keys to the palette in color mode and keeps colors through digit placement', () => {
+    const game = useGameStore.getState();
+    game.selectCell({ row: 0, col: 0 });
+    game.setInputMode('color');
+    game.placeDigit(3); // key 3 → color index 2
+    expect(useGameStore.getState().grid[0][0].colorIndex).toBe(2);
+    expect(useGameStore.getState().grid[0][0].digit).toBeNull();
+    useGameStore.getState().placeDigit(9); // last key clears
+    expect(useGameStore.getState().grid[0][0].colorIndex).toBeNull();
+
+    useGameStore.getState().paintCell(1);
+    useGameStore.getState().setInputMode('digit');
+    useGameStore.getState().placeDigit(solution[0][0]);
+    expect(useGameStore.getState().grid[0][0].colorIndex).toBe(1);
+  });
+
   it('undoes and redoes a completed placement', () => {
     const game = useGameStore.getState();
     game.selectCell({ row: 0, col: 0 });

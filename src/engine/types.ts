@@ -17,6 +17,13 @@ export type Cell = {
 
 export type Grid = Cell[][];
 
+/** Number of cell highlight colors; colorIndex ranges over 0..CELL_COLOR_COUNT-1. */
+export const CELL_COLOR_COUNT = 8;
+
+export function isColorIndex(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) < CELL_COLOR_COUNT;
+}
+
 export type Cage = {
   sum: number;
   cells: CellPosition[];
@@ -56,6 +63,9 @@ export type CellChange = {
   newCornerNotes: Set<Digit>;
   previousCenterNotes: Set<Digit>;
   newCenterNotes: Set<Digit>;
+  /** Highlight color; absent means the action left the color untouched. */
+  previousColorIndex?: number | null;
+  newColorIndex?: number | null;
 };
 
 /**

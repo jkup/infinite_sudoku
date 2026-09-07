@@ -6,6 +6,7 @@ const INPUT_MODES: { mode: InputMode; label: string }[] = [
   { mode: 'digit', label: 'Digit' },
   { mode: 'corner', label: 'Corner' },
   { mode: 'center', label: 'Center' },
+  { mode: 'color', label: 'Color' },
 ];
 
 type Props = {
