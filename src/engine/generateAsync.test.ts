@@ -118,6 +118,22 @@ describe('asynchronous puzzle generation', () => {
     vi.doUnmock('./generator');
   });
 
+  it('runs background generation on its own worker so it never queues behind a foreground request', async () => {
+    const { generatePuzzleAsync, generatePuzzleInBackground } = await import('./generateAsync');
+    const foreground = generatePuzzleAsync('easy', 'classic');
+    const background = generatePuzzleInBackground('expert', 'classic');
+    expect(FakeWorker.instances).toHaveLength(2);
+    const [fgWorker, bgWorker] = FakeWorker.instances;
+    expect(fgWorker.messages[0]).toMatchObject({ requestId: 'request-one', difficulty: 'easy' });
+    expect(bgWorker.messages[0]).toMatchObject({ requestId: 'request-two', difficulty: 'expert' });
+
+    // A background failure must not take the foreground request down with it.
+    bgWorker.dispatchEvent(new Event('error'));
+    await expect(background).rejects.toThrow('Puzzle worker failed');
+    fgWorker.respond('request-one', puzzle('easy', 'classic'));
+    await expect(foreground).resolves.toEqual(expect.objectContaining({ difficulty: 'easy' }));
+  });
+
   it('rejects a request that exceeds the generation timeout', async () => {
     vi.useFakeTimers();
     const { generatePuzzleAsync } = await import('./generateAsync');
