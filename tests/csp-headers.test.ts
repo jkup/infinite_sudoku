@@ -37,6 +37,11 @@ describe('Content Security Policy', () => {
     expect(directives.get('style-src')).toContain("'unsafe-inline'");
   });
 
+  it('allows the Cloudflare Web Analytics beacon the zone injects automatically', () => {
+    expect(directives.get('script-src')).toContain('https://static.cloudflareinsights.com');
+    expect(directives.get('connect-src')).toContain('https://cloudflareinsights.com');
+  });
+
   it('never loosens script execution beyond allowlisted hosts', () => {
     expect(directives.get('script-src')).not.toContain("'unsafe-eval'");
     expect(directives.get('script-src')).not.toContain("'unsafe-inline'");
