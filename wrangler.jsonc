@@ -4,21 +4,8 @@
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-09-03",
   "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true,
-    "redact_query_string": true,
-    "logs": {
-      "enabled": true,
-      "head_sampling_rate": 1,
-      "invocation_logs": true,
-      "persist": true
-    },
-    "traces": {
-      "enabled": true,
-      "head_sampling_rate": 0.1,
-      "persist": true
-    }
-  },
+  // Note: "observability" is a Workers-only key. Pages build validation rejects
+  // any config that contains it, which silently fails every deployment.
   "d1_databases": [
     {
       "binding": "DB",

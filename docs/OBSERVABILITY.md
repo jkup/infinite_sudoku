@@ -33,6 +33,9 @@ failures in five minutes. Review the dashboard weekly even if no alert fires.
 5. After recovery, the player can select **Retry stats sync**. The queued request
    keeps its original completion ID, so server idempotency prevents double stats.
 
-Logs are sampled at 100% and traces at 10% in `wrangler.jsonc`. Revisit sampling
-when traffic or retention cost grows; never solve volume by adding payload or
-identity data to logs.
+Log persistence and sampling for Pages Functions are configured in the
+dashboard project settings, not in `wrangler.jsonc`: the Workers `observability`
+key is rejected by Pages build validation and fails the whole deployment. For a
+live view use `npx wrangler pages deployment tail --project-name infinite-sudoku`.
+Revisit sampling when traffic or retention cost grows; never solve volume by
+adding payload or identity data to logs.

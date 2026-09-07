@@ -207,10 +207,11 @@ environment where the deployment workflow supports named environments.
 
 `nodejs_compat` is enabled because Clerk's backend SDK uses Node-compatible
 runtime APIs; the Workers integration suite exercises that exact compatibility
-date and flag. Persisted invocation logs are sampled at 100% for the app's
-expected low traffic and traces at 10%. Query strings are redacted. Application
-logging must never include authorization headers, Clerk tokens, request bodies,
-or D1 row contents.
+date and flag. Pages does not support the Workers `observability` config key
+(its build validation rejects the whole file if present); use the dashboard's
+real-time logs or `npx wrangler pages deployment tail --project-name
+infinite-sudoku` to watch Functions output. Application logging must never
+include authorization headers, Clerk tokens, request bodies, or D1 row contents.
 
 Authentication-sensitive `/api/*` routes fail closed in `functions/_middleware.ts`:
 missing configuration, invalid tokens, and Clerk verification errors all return
