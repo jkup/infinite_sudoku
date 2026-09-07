@@ -79,7 +79,9 @@ backup, verification, and recovery procedure.
 ## Daily puzzles
 
 One canonical puzzle per mode exists for each UTC date; difficulty follows a
-weekday rotation. Hard and expert generation takes seconds to tens of seconds,
+weekday rotation. The Daily control lists today and the previous two weeks, so
+missed days can be played later; those replays count for score but never change
+streaks. Hard and expert generation takes seconds to tens of seconds,
 so puzzles are generated ahead of time rather than on request. The script reads
 which rows already exist, generates only the missing ones with the shared
 engine, and inserts them idempotently:

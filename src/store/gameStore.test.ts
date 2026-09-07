@@ -130,6 +130,22 @@ describe('game store transitions', () => {
     expect(vi.mocked(postGameResult).mock.calls[0][0]).toMatchObject({ dailyPuzzleId: 42, difficulty: 'expert' });
   });
 
+  it('starts a past daily by date and retries with the same date', async () => {
+    vi.mocked(getDailyPuzzle).mockResolvedValueOnce(null);
+    useGameStore.getState().startDaily('classic', '2026-09-06');
+    expect(getDailyPuzzle).toHaveBeenCalledWith('classic', '2026-09-06');
+    expect(useGameStore.getState().pendingGameSettings).toMatchObject({ mode: 'classic', daily: true, date: '2026-09-06', difficulty: 'expert' });
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
+    expect(useGameStore.getState().generationError).toBe('There is no daily puzzle for that date.');
+
+    const past: Puzzle = { ...makePuzzle(), difficulty: 'expert', daily: { id: 7, date: '2026-09-06' } };
+    vi.mocked(getDailyPuzzle).mockResolvedValueOnce(past);
+    useGameStore.getState().retryGeneration();
+    expect(getDailyPuzzle).toHaveBeenLastCalledWith('classic', '2026-09-06');
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('idle'));
+    expect(useGameStore.getState().puzzle?.daily).toEqual({ id: 7, date: '2026-09-06' });
+  });
+
   it('omits the daily id from ordinary completions', () => {
     useGameStore.getState().selectCell({ row: 0, col: 0 });
     useGameStore.getState().placeDigit(solution[0][0]);
