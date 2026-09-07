@@ -205,7 +205,10 @@ npx wrangler d1 export DB --remote --output ./infinite-sudoku-backup.sql
 npx wrangler d1 migrations apply DB --remote
 ```
 
-Push the verified commit to `main`; Cloudflare builds production automatically.
+`main` is protected by a ruleset: changes land only through a pull request whose
+`quality` CI job passed, and force-pushes and deletions are blocked. Push a
+branch, open a PR, and enable auto-merge (`gh pr merge --auto --squash`) so it
+lands as soon as CI is green; Cloudflare then builds production automatically.
 Pull requests get preview URLs when preview deployments are enabled. Verify
 sign-in, an authenticated API request, game completion, and PWA loading on the
 preview before merging. Include trusted preview/custom origins in that

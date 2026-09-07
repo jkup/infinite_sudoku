@@ -14,5 +14,6 @@ When the audit fails:
 4. If no fix exists, document the advisory, exposure analysis, compensating
    controls, owner, and review date before adding any temporary exception.
 
-Dependabot alerts should remain enabled in repository settings. Branch protection
-should require the `quality` job before merging to `main`.
+Dependabot alerts should remain enabled in repository settings. A repository
+ruleset on `main` requires a pull request with a passing `quality` job and
+blocks force-pushes and deletions; keep it enforced.
