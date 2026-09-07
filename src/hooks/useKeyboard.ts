@@ -9,10 +9,21 @@ export function useKeyboard(onToggleHelp?: () => void) {
       if (e.defaultPrevented || document.querySelector('dialog[open], [data-game-popup]')) return;
       if (e.target instanceof Element && e.target.closest('button, select, input, textarea, a, [contenteditable="true"], [role="dialog"]')) return;
       const state = useGameStore.getState();
+      // Cmd/Ctrl/Alt chords belong to the browser and OS (Cmd+1 switches tabs,
+      // Cmd+Left goes back). Only the explicit undo/redo chords below use them.
+      const chord = e.ctrlKey || e.metaKey || e.altKey;
+
+      // Ctrl/Cmd+Z — undo; Ctrl/Cmd+Shift+Z — redo (key reports as 'Z' with Shift held)
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) state.redo(); else state.undo();
+        e.preventDefault();
+        return;
+      }
+      if (chord) return;
 
       // Digits 1-9 (or 1-6 for mini grids)
       const gridSize = state.grid.length || 9;
-      if (e.key >= '1' && parseInt(e.key) <= gridSize) {
+      if (e.key >= '1' && e.key <= '9' && parseInt(e.key) <= gridSize) {
         const digit = parseInt(e.key) as Digit;
 
         if (e.shiftKey) {
@@ -45,22 +56,8 @@ export function useKeyboard(onToggleHelp?: () => void) {
       }
 
       // C — toggle color mode; digits then paint (1–8) or clear (9)
-      if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
+      if (e.key === 'c' || e.key === 'C') {
         state.setInputMode(state.inputMode === 'color' ? 'digit' : 'color');
-        e.preventDefault();
-        return;
-      }
-
-      // Ctrl/Cmd+Z — undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        state.undo();
-        e.preventDefault();
-        return;
-      }
-
-      // Ctrl/Cmd+Shift+Z — redo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
-        state.redo();
         e.preventDefault();
         return;
       }

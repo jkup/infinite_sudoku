@@ -82,6 +82,9 @@ export default function Board() {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>, pos: CellPosition) => {
+    // Leave browser/OS chords alone (Cmd+Left is "back"); Ctrl+Home/End are ours.
+    const ctrlJump = event.ctrlKey && (event.key === 'Home' || event.key === 'End');
+    if (event.metaKey || event.altKey || (event.ctrlKey && !ctrlJump)) return;
     const max = gridSize - 1;
     let next: CellPosition | null = null;
 
