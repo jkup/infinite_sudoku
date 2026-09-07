@@ -51,6 +51,17 @@ describe('Leaderboard', () => {
     await vi.waitFor(() => expect(getLeaderboard).toHaveBeenCalledTimes(2));
   });
 
+  it("reports the player's standing to the parent on each load", async () => {
+    getLeaderboard.mockResolvedValueOnce(board).mockResolvedValueOnce({ ...board, you: null });
+    const onStanding = vi.fn();
+    const { rerender } = render(<Leaderboard date="2026-09-06" mode="classic" refreshKey="a" onStanding={onStanding} />);
+    await vi.waitFor(() => expect(onStanding).toHaveBeenCalledWith({ rank: 57, totalEntries: 60 }));
+
+    rerender(<Leaderboard date="2026-09-06" mode="classic" refreshKey="b" onStanding={onStanding} />);
+    await vi.waitFor(() => expect(onStanding).toHaveBeenLastCalledWith(null));
+    expect(getLeaderboard).toHaveBeenCalledTimes(2);
+  });
+
   it('prompts for sign-in, and reports empty and failed boards', async () => {
     useAuth.mockReturnValue({ isLoaded: true, isSignedIn: false });
     const { unmount } = render(<Leaderboard date="2026-09-06" mode="killer" />);

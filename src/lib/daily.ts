@@ -48,6 +48,13 @@ export function addDays(date: string, days: number): string {
   return utcDateString(parsed);
 }
 
+/** Human-readable canonical date, e.g. "Monday, September 7", interpreted in UTC. */
+export function formatDailyDate(date: string, locale?: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, {
+    weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
+  });
+}
+
 /** Difficulty for a date under the weekday rotation. */
 export function dailyDifficultyFor(date: string): Difficulty {
   if (!isDailyDate(date)) throw new Error(`Invalid daily date: ${date}`);
