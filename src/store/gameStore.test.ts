@@ -3,10 +3,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Digit, Puzzle } from '../engine/types';
 import { gridFromValues } from '../engine/types';
 
-const { mockGeneratePuzzleAsync } = vi.hoisted(() => ({ mockGeneratePuzzleAsync: vi.fn() }));
+const { mockGeneratePuzzleAsync, mockPrefetchPuzzle } = vi.hoisted(() => ({ mockGeneratePuzzleAsync: vi.fn(), mockPrefetchPuzzle: vi.fn() }));
 vi.mock('../engine/generateAsync', () => ({
   generatePuzzleAsync: mockGeneratePuzzleAsync,
+  generatePuzzleInBackground: vi.fn(),
   generateMiniPuzzleAsync: vi.fn(),
+}));
+// The store draws new games from the prefetch cache; tests drive it as the generator.
+vi.mock('../engine/puzzlePrefetch', () => ({
+  takePuzzle: mockGeneratePuzzleAsync,
+  prefetchPuzzle: mockPrefetchPuzzle,
 }));
 vi.mock('../lib/api', () => ({
   postGameResult: vi.fn().mockResolvedValue(undefined),
@@ -164,6 +170,21 @@ describe('game store transitions', () => {
     expect(getDailyPuzzle).toHaveBeenLastCalledWith('killer');
     await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
     expect(useGameStore.getState().generationError).toContain('Check your connection');
+  });
+
+  it('prefetches the next puzzle for the settings of each game it starts or restores', async () => {
+    mockPrefetchPuzzle.mockClear();
+    mockGeneratePuzzleAsync.mockResolvedValueOnce({ ...makePuzzle(), difficulty: 'expert' });
+    useGameStore.getState().newGame('expert', 'classic');
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('idle'));
+    expect(mockGeneratePuzzleAsync).toHaveBeenCalledWith('expert', 'classic');
+    expect(mockPrefetchPuzzle).toHaveBeenCalledWith('expert', 'classic');
+
+    mockPrefetchPuzzle.mockClear();
+    useGameStore.getState().captureSession();
+    await vi.advanceTimersByTimeAsync(600); // debounced save
+    expect(useGameStore.getState().loadSavedGame()).toBe(true);
+    expect(mockPrefetchPuzzle).toHaveBeenCalledWith('expert', 'classic');
   });
 
   it('retries ordinary generation with the same settings', async () => {

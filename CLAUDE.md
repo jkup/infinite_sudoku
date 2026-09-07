@@ -52,7 +52,8 @@ Pure TypeScript, no framework dependencies — runs in both main thread and Web 
 - **solver.ts**: Constraint propagation solver with 10 technique levels (NakedSingle through YWing). Returns max technique used, which maps to difficulty.
 - **validator.ts**: `findConflicts()` returns a Map of cells with duplicate digits in row/col/box. `getPeers()` returns all cells that share a row, column, or box.
 - **killer.ts**: Generates connected cage groups tiling the grid. Cage sizes vary by difficulty.
-- **generateAsync.ts**: Web Worker wrapper. Falls back to sync `generatePuzzle()` if Workers are unavailable.
+- **generateAsync.ts**: Web Worker wrapper with two lanes (foreground and background workers) so a background job never delays a game the player is waiting for. Retries until the generated difficulty matches the request (`difficultyRetry.ts`). Falls back to sync `generatePuzzle()` if Workers are unavailable.
+- **puzzlePrefetch.ts**: keeps the next puzzle for the current difficulty/mode ready on the background lane; `newGame` takes it so hard/expert starts are instant.
 
 ### Hint System
 

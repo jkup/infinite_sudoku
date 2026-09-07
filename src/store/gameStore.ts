@@ -12,7 +12,7 @@ import type {
   HistoryEntry,
 } from '../engine/types';
 import { gridFromValues, getDigitsForSize, CELL_COLOR_COUNT, isColorIndex } from '../engine/types';
-import { generatePuzzleAsync } from '../engine/generateAsync';
+import { prefetchPuzzle, takePuzzle } from '../engine/puzzlePrefetch';
 import { findConflicts, getPeers, isPuzzleComplete, isPuzzleDefinitionValid } from '../engine/validator';
 import { getCageForCell } from '../engine/killer';
 import { saveGame, loadGame, hasSavedGame } from '../lib/persistence';
@@ -319,6 +319,8 @@ function beginPuzzle(set: (partial: Partial<GameState>) => void, get: () => Game
     completionSyncError: null,
   });
   startTimer(set, get, 0);
+  // Have the next game of these settings ready before the player asks for it.
+  prefetchPuzzle(puzzle.difficulty, puzzle.mode);
 }
 
 /** Run an async puzzle load, ignoring its result if a newer load has started since. */
@@ -378,7 +380,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   completionSyncError: null,
 
   newGame: (difficulty, mode = 'classic') => {
-    loadPuzzle(set, get, { difficulty, mode }, () => generatePuzzleAsync(difficulty, mode));
+    loadPuzzle(set, get, { difficulty, mode }, () => takePuzzle(difficulty, mode));
   },
 
   startDaily: (mode, date) => {
@@ -821,6 +823,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       completionSyncError: null,
     });
     if (saved.status === 'playing') startTimer(set, get, saved.elapsedMs);
+    prefetchPuzzle(saved.difficulty, saved.mode);
     return true;
   },
 
