@@ -198,5 +198,6 @@ describe('App game screen', () => {
     await user.click(within(await screen.findByRole('dialog', { name: 'Hint Earned!' })).getByRole('button', { name: 'Claim Hint' }));
     expect(await screen.findByRole('dialog', { name: 'Puzzle Complete!' })).toBeInTheDocument(); // parent finished by the reveal
     expect(useGameStore.getState().grid[0][0].digit).toBe(solution[0][0]);
+    expect(useGameStore.getState().hintsUsed).toBe(1); // the abandoned attempt was not charged, the earned one was
   });
 });
