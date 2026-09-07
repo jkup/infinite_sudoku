@@ -164,10 +164,18 @@ function restoreNotesOnRemoval(
   const gridSize = grid.length;
   const changes: CellChange[] = [];
 
+  // Heuristic: auto-notes are in use if any empty peer carries corner notes.
+  const autoNotesActive = getPeers(row, col, gridSize).some(
+    (p) => grid[p.row][p.col].digit === null && grid[p.row][p.col].cornerNotes.size > 0,
+  );
+
   for (const peer of getPeers(row, col, gridSize)) {
     const peerCell = grid[peer.row][peer.col];
-    // Only restore for empty cells that already have corner notes (auto-notes active)
-    if (peerCell.digit !== null || peerCell.cornerNotes.size === 0) continue;
+    if (peerCell.digit !== null) continue;
+    // Restore into peers that still have notes, and, while auto-notes are in
+    // use, into peers whose only candidate this digit was (their notes are
+    // empty precisely because the placement wiped it).
+    if (peerCell.cornerNotes.size === 0 && !autoNotesActive) continue;
     // Already has this digit noted
     if (peerCell.cornerNotes.has(removedDigit)) continue;
 
@@ -211,10 +219,6 @@ function restoreNotesOnRemoval(
   }
 
   // Recalculate candidates for the now-empty cell itself if auto-notes are in use
-  // (heuristic: if any peer has corner notes, auto-notes are active)
-  const autoNotesActive = getPeers(row, col, gridSize).some(
-    (p) => grid[p.row][p.col].digit === null && grid[p.row][p.col].cornerNotes.size > 0,
-  );
   if (autoNotesActive) {
     const cell = grid[row][col];
     const usedDigits = new Set<Digit>();
@@ -834,8 +838,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     const entry = history[historyIndex];
     const newGrid = cloneGrid(grid);
 
-    // Reverse all changes in this entry
-    for (const change of entry.changes) {
+    // Reverse all changes in this entry, last first: an entry can hold two
+    // changes for the same cell (a removal plus its note recomputation), and
+    // unwinding in reverse lets the earlier change's "previous" state win.
+    for (const change of [...entry.changes].reverse()) {
       const target = newGrid[change.position.row][change.position.col];
       target.digit = change.previousDigit;
       target.cornerNotes = new Set(change.previousCornerNotes);
