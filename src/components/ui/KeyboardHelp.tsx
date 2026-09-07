@@ -2,7 +2,8 @@ import Modal from './Modal';
 const SHORTCUTS = [
   { keys: ['1', '–', '9'], desc: 'Place digit' },
   { keys: ['Shift', '+', '1–9'], desc: 'Corner note' },
-  { keys: ['N'], desc: 'Cycle input mode' },
+  { keys: ['N'], desc: 'Cycle digit / corner / center' },
+  { keys: ['C'], desc: 'Color mode: 1–8 paint, 9 clears' },
   { keys: ['\u2190', '\u2191', '\u2192', '\u2193'], desc: 'Navigate cells' },
   { keys: ['Backspace'], desc: 'Erase cell' },
   { keys: ['\u2318/Ctrl', '+', 'Z'], desc: 'Undo' },

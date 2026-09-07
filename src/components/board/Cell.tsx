@@ -37,16 +37,19 @@ const NOTE_GRID: Record<Digit, { gridRow: number; gridCol: number }> = {
 };
 
 function CellComponent({ cell, isSelected, isTabStop, isHighlighted, isDigitMatch, isConflict, isHintReveal, isTutorialTarget, isKillerMode, cageSum, gridSize, onPointerDown, onFocus, onKeyDown }: CellProps) {
-  const { position, digit, isGiven, cornerNotes, centerNotes } = cell;
+  const { position, digit, isGiven, cornerNotes, centerNotes, colorIndex } = cell;
   const { row, col } = position;
   const { boxRows, boxCols } = getBoxDimensions(gridSize);
   const lastIdx = gridSize - 1;
+  const paint = colorIndex === null ? null : `var(--color-cell-paint-${colorIndex})`;
 
-  // Background color — selected takes priority over conflict so focus is always visible
+  // Background color — selected takes priority over conflict so focus is always visible.
+  // A player's own paint beats automatic highlights: it is deliberate.
   let bgColor: string;
   if (isSelected) bgColor = 'var(--color-cell-selected)';
   else if (isConflict) bgColor = 'var(--color-cell-conflict)';
   else if (isTutorialTarget) bgColor = 'var(--color-tutorial-target)';
+  else if (paint) bgColor = paint;
   else if (isDigitMatch) bgColor = 'var(--color-cell-digit-match)';
   else if (isHighlighted) bgColor = 'var(--color-cell-highlighted)';
   else if (isGiven && !isKillerMode) bgColor = 'var(--color-cell-given)';
@@ -96,6 +99,7 @@ function CellComponent({ cell, isSelected, isTabStop, isHighlighted, isDigitMatc
       className={`sudoku-cell relative flex items-center justify-center cursor-pointer select-none aspect-square active:brightness-95 outline-none${isHintReveal ? ' hint-reveal' : ''}${isTutorialTarget ? ' tutorial-mark' : ''}`}
       style={borderStyle}
       data-highlight={isTutorialTarget ? 'target' : undefined}
+      data-paint={colorIndex ?? undefined}
       data-cell={`${row},${col}`}
       onPointerDown={handlePointerDown}
       onFocus={() => onFocus(position)}
@@ -107,8 +111,13 @@ function CellComponent({ cell, isSelected, isTabStop, isHighlighted, isDigitMatc
       aria-invalid={isConflict || undefined}
       aria-label={`Row ${row + 1}, Column ${col + 1}${
         digit ? `, value ${digit}` : ', empty'
-      }, ${isGiven ? 'given' : 'editable'}${isConflict ? ', conflict' : ''}${isTutorialTarget ? ', tutorial target' : ''}${isHintReveal ? ', hint revealed' : ''}${notesLabel}${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
+      }, ${isGiven ? 'given' : 'editable'}${isConflict ? ', conflict' : ''}${isTutorialTarget ? ', tutorial target' : ''}${isHintReveal ? ', hint revealed' : ''}${notesLabel}${colorIndex !== null ? `, color ${colorIndex + 1}` : ''}${cageSum !== null ? `, cage sum ${cageSum}` : ''}`}
     >
+      {/* Paint swatch: keeps the player's color visible even while the cell is selected or in conflict */}
+      {paint && bgColor !== paint && (
+        <span aria-hidden="true" className="absolute bottom-0 right-0 z-10" style={{ width: '28%', height: '28%', backgroundColor: paint, clipPath: 'polygon(100% 0, 100% 100%, 0 100%)' }} />
+      )}
+
       {/* Killer cage sum label */}
       {cageSum !== null && (
         <span

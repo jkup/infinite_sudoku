@@ -17,7 +17,8 @@ function contrast(a: string, b: string) {
   const [low, high] = [luminance(a), luminance(b)].sort((x, y) => x - y);
   return (high + 0.05) / (low + 0.05);
 }
-const boardBackgrounds = ['cell-bg', 'cell-selected', 'cell-highlighted', 'cell-given', 'cell-digit-match', 'cell-conflict', 'tutorial-primary', 'tutorial-secondary', 'tutorial-target'];
+const paintBackgrounds = Array.from({ length: 8 }, (_, index) => `cell-paint-${index}`);
+const boardBackgrounds = ['cell-bg', 'cell-selected', 'cell-highlighted', 'cell-given', 'cell-digit-match', 'cell-conflict', 'tutorial-primary', 'tutorial-secondary', 'tutorial-target', ...paintBackgrounds];
 const textPairs: [string, string[]][] = [
   ['text', ['bg', 'bg-secondary', 'card-bg', ...boardBackgrounds]],
   ['text-muted', ['bg', 'bg-secondary', 'card-bg', 'btn-bg']],

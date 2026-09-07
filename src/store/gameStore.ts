@@ -11,7 +11,7 @@ import type {
   CellChange,
   HistoryEntry,
 } from '../engine/types';
-import { gridFromValues, getDigitsForSize } from '../engine/types';
+import { gridFromValues, getDigitsForSize, CELL_COLOR_COUNT, isColorIndex } from '../engine/types';
 import { generatePuzzleAsync } from '../engine/generateAsync';
 import { findConflicts, getPeers, isPuzzleComplete, isPuzzleDefinitionValid } from '../engine/validator';
 import { getCageForCell } from '../engine/killer';
@@ -89,6 +89,8 @@ type GameState = {
   revealHint: (pos: CellPosition, digit: Digit, incrementUsage?: boolean) => void;
   eraseCell: () => void;
   toggleNote: (digit: Digit) => void;
+  /** Paint the selected cell (null clears); painting its current color clears it. */
+  paintCell: (colorIndex: number | null) => void;
   setInputMode: (mode: InputMode) => void;
   autoNote: () => void;
   loadSavedGame: () => boolean;
@@ -415,6 +417,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       get().toggleNote(digit);
       return;
     }
+    if (inputMode === 'color') {
+      // Keys 1..8 paint colors 0..7; the last key (9) clears.
+      get().paintCell(digit <= CELL_COLOR_COUNT ? digit - 1 : null);
+      return;
+    }
 
     // Digit mode
     const newGrid = cloneGrid(grid);
@@ -525,8 +532,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const { row, col } = selectedCell;
     const cell = grid[row][col];
-    if (cell.isGiven) return;
-    if (cell.digit === null && cell.cornerNotes.size === 0 && cell.centerNotes.size === 0) return;
+    // Givens keep their digit but can still be un-painted.
+    if (cell.isGiven) {
+      if (cell.colorIndex !== null) get().paintCell(null);
+      return;
+    }
+    if (cell.digit === null && cell.cornerNotes.size === 0 && cell.centerNotes.size === 0 && cell.colorIndex === null) return;
 
     vibrate();
 
@@ -543,11 +554,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       newCornerNotes: new Set<Digit>(),
       previousCenterNotes: new Set(target.centerNotes),
       newCenterNotes: new Set<Digit>(),
+      previousColorIndex: target.colorIndex,
+      newColorIndex: null,
     };
 
     target.digit = null;
     target.cornerNotes.clear();
     target.centerNotes.clear();
+    target.colorIndex = null;
 
     // Restore notes that were auto-removed when this digit was placed
     const restoredChanges: CellChange[] = [];
@@ -614,6 +628,37 @@ export const useGameStore = create<GameState>((set, get) => ({
       history: newHistory,
       historyIndex: newHistory.length - 1,
     });
+  },
+
+  paintCell: (colorIndex) => {
+    const { grid, selectedCell, status, history, historyIndex } = get();
+    if (!selectedCell || status !== 'playing') return;
+    if (colorIndex !== null && !isColorIndex(colorIndex)) return;
+
+    const { row, col } = selectedCell;
+    const previous = grid[row][col].colorIndex;
+    const next = previous === colorIndex ? null : colorIndex;
+    if (next === previous) return;
+
+    const newGrid = cloneGrid(grid);
+    const target = newGrid[row][col];
+    target.colorIndex = next;
+
+    const change: CellChange = {
+      position: { row, col },
+      previousDigit: target.digit,
+      newDigit: target.digit,
+      previousCornerNotes: new Set(target.cornerNotes),
+      newCornerNotes: new Set(target.cornerNotes),
+      previousCenterNotes: new Set(target.centerNotes),
+      newCenterNotes: new Set(target.centerNotes),
+      previousColorIndex: previous,
+      newColorIndex: next,
+    };
+
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ changes: [change] });
+    set({ grid: newGrid, history: newHistory, historyIndex: newHistory.length - 1 });
   },
 
   setInputMode: (mode) => {
@@ -784,6 +829,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       target.digit = change.previousDigit;
       target.cornerNotes = new Set(change.previousCornerNotes);
       target.centerNotes = new Set(change.previousCenterNotes);
+      if (change.previousColorIndex !== undefined) target.colorIndex = change.previousColorIndex;
     }
 
     const wasCompleted = get().status === 'completed';
@@ -810,6 +856,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       target.digit = change.newDigit;
       target.cornerNotes = new Set(change.newCornerNotes);
       target.centerNotes = new Set(change.newCenterNotes);
+      if (change.newColorIndex !== undefined) target.colorIndex = change.newColorIndex;
     }
 
     const conflicts = updateConflicts(newGrid);

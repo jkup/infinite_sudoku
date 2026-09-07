@@ -35,11 +35,18 @@ export function useKeyboard(onToggleHelp?: () => void) {
         return;
       }
 
-      // N — toggle note mode
+      // N — cycle note modes (digit → corner → center → digit)
       if (e.key === 'n' || e.key === 'N') {
         const next = state.inputMode === 'digit' ? 'corner' :
                      state.inputMode === 'corner' ? 'center' : 'digit';
         state.setInputMode(next);
+        e.preventDefault();
+        return;
+      }
+
+      // C — toggle color mode; digits then paint (1–8) or clear (9)
+      if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
+        state.setInputMode(state.inputMode === 'color' ? 'digit' : 'color');
         e.preventDefault();
         return;
       }

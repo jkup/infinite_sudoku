@@ -45,6 +45,16 @@ body {
   --color-cell-conflict: #fee2e2;
   --color-cell-digit-match: #dbeafe;
 
+  /* Player-applied cell highlights; every theme keeps digits and notes at 4.5:1 on these. */
+  --color-cell-paint-0: #fecaca;
+  --color-cell-paint-1: #fed7aa;
+  --color-cell-paint-2: #fef08a;
+  --color-cell-paint-3: #bbf7d0;
+  --color-cell-paint-4: #a5f3fc;
+  --color-cell-paint-5: #d6e0ff;
+  --color-cell-paint-6: #e9d5ff;
+  --color-cell-paint-7: #fbcfe8;
+
   --color-digit-given: #1e293b;
   --color-digit-placed: #1d4ed8;
   --color-digit-error: #b91c1c;
@@ -82,6 +92,15 @@ body {
   --color-cell-given: #253347;
   --color-cell-conflict: #4c1d1d;
   --color-cell-digit-match: #172554;
+
+  --color-cell-paint-0: #4a1a24;
+  --color-cell-paint-1: #4a2e0e;
+  --color-cell-paint-2: #3d3a0c;
+  --color-cell-paint-3: #0f3d22;
+  --color-cell-paint-4: #0f3b38;
+  --color-cell-paint-5: #172f6e;
+  --color-cell-paint-6: #301a58;
+  --color-cell-paint-7: #4a1a3a;
 
   --color-digit-given: #e2e8f0;
   --color-digit-placed: #60a5fa;
@@ -121,6 +140,15 @@ body {
   --color-cell-conflict: #f5d0c0;
   --color-cell-digit-match: #e8dcc8;
 
+  --color-cell-paint-0: #f5d3cb;
+  --color-cell-paint-1: #f5d9b3;
+  --color-cell-paint-2: #f0e6a8;
+  --color-cell-paint-3: #cfe3c4;
+  --color-cell-paint-4: #c6e3df;
+  --color-cell-paint-5: #cdd8ea;
+  --color-cell-paint-6: #e0d1ec;
+  --color-cell-paint-7: #f0cfe0;
+
   --color-digit-given: #2c2416;
   --color-digit-placed: #6b5a3e;
   --color-digit-error: #92331f;
@@ -158,6 +186,15 @@ body {
   --color-cell-given: #e0e0e0;
   --color-cell-conflict: #ff6666;
   --color-cell-digit-match: #ccccff;
+
+  --color-cell-paint-0: #ffb3b3;
+  --color-cell-paint-1: #ffd9a6;
+  --color-cell-paint-2: #ffff99;
+  --color-cell-paint-3: #b3ffb3;
+  --color-cell-paint-4: #b3ffff;
+  --color-cell-paint-5: #b3c6ff;
+  --color-cell-paint-6: #e0b3ff;
+  --color-cell-paint-7: #ffb3e6;
 
   --color-digit-given: #000000;
   --color-digit-placed: #0000cc;

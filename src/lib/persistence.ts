@@ -1,5 +1,6 @@
 import type { Digit, Grid, Puzzle, GameMode, Difficulty, GameStatus, InputMode, HistoryEntry, CellChange, CellPosition } from '../engine/types';
 import { isPuzzleComplete, isPuzzleDefinitionValid } from '../engine/validator';
+import { isColorIndex } from '../engine/types';
 import { isDailyPuzzleRef } from './daily';
 
 const SAVE_KEY = 'infinite-sudoku-save';
@@ -48,6 +49,8 @@ type SerializedCellChange = {
   newCornerNotes: Digit[];
   previousCenterNotes: Digit[];
   newCenterNotes: Digit[];
+  previousColorIndex?: number | null;
+  newColorIndex?: number | null;
 };
 
 type SerializedHistoryEntry = {
@@ -76,7 +79,7 @@ function deserializeGrid(data: SerializedGrid): Grid {
       isGiven: cell.isGiven,
       cornerNotes: new Set(cell.cornerNotes) as Set<Digit>,
       centerNotes: new Set(cell.centerNotes) as Set<Digit>,
-      colorIndex: cell.colorIndex,
+      colorIndex: cell.colorIndex ?? null,
       isError: false,
     }))
   );
@@ -89,8 +92,9 @@ function isSerializedGridValid(data: unknown, puzzle: Puzzle): data is Serialize
       if (!cell || typeof cell !== 'object') return false;
       const value = cell as Partial<SerializedCell>;
       const validDigit = value.digit === null || (Number.isInteger(value.digit) && value.digit! >= 1 && value.digit! <= puzzle.gridSize);
+      const validColor = value.colorIndex === null || value.colorIndex === undefined || isColorIndex(value.colorIndex);
       const givenDigit = puzzle.initial[rowIndex][colIndex];
-      return value.row === rowIndex && value.col === colIndex && validDigit
+      return value.row === rowIndex && value.col === colIndex && validDigit && validColor
         && value.isGiven === (givenDigit !== null)
         && (givenDigit === null || value.digit === givenDigit)
         && Array.isArray(value.cornerNotes) && Array.isArray(value.centerNotes);
@@ -106,6 +110,7 @@ function serializeCellChange(c: CellChange): SerializedCellChange {
     newCornerNotes: [...c.newCornerNotes],
     previousCenterNotes: [...c.previousCenterNotes],
     newCenterNotes: [...c.newCenterNotes],
+    ...(c.previousColorIndex === undefined ? {} : { previousColorIndex: c.previousColorIndex, newColorIndex: c.newColorIndex ?? null }),
   };
 }
 
@@ -118,6 +123,7 @@ function deserializeCellChange(c: SerializedCellChange): CellChange {
     newCornerNotes: new Set(c.newCornerNotes) as Set<Digit>,
     previousCenterNotes: new Set(c.previousCenterNotes) as Set<Digit>,
     newCenterNotes: new Set(c.newCenterNotes) as Set<Digit>,
+    ...(c.previousColorIndex === undefined ? {} : { previousColorIndex: c.previousColorIndex, newColorIndex: c.newColorIndex ?? null }),
   };
 }
 
