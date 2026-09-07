@@ -171,11 +171,26 @@ The intended production setup is a Git-integrated Pages project:
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Functions: repository-root `functions/` (detected automatically)
-- D1 binding: `DB`
-- Build/runtime variable: `CLERK_PUBLIC`
-- Runtime secrets: `CLERK_SECRET` and optionally `CLERK_AUTHORIZED_PARTIES`
+- D1 binding: `DB`, declared in `wrangler.jsonc`
+- `CLERK_PUBLIC`: committed in `wrangler.jsonc` under `vars` (top level and
+  `env.preview`). The Functions runtime reads it from there and the Vite build
+  reads the same file, so the bundle and the API always use one Clerk instance.
+  It is a publishable key, public by design.
+- Runtime secrets, set once per environment and never committed:
 
-Before the first deployment, create D1, update its ID in `wrangler.toml`, and
+  ```sh
+  npx wrangler pages secret put CLERK_SECRET --project-name infinite-sudoku
+  npx wrangler pages secret put CLERK_SECRET --project-name infinite-sudoku --env preview
+  ```
+
+  `CLERK_AUTHORIZED_PARTIES` is optional and set the same way.
+
+`wrangler.jsonc` is the source of truth for Pages variables and bindings: on
+deploy, anything not declared in it is removed from the project. Do not add
+plain variables in the dashboard; add them to the file. Secrets stay in the
+dashboard because the file must never contain them.
+
+Before the first deployment, create D1, update its ID in `wrangler.jsonc`, and
 configure the Pages binding. Before each production deployment:
 
 ```sh

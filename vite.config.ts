@@ -3,17 +3,20 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { resolveClerkPublicKey } from './scripts/lib/clerkPublicKey'
 
-// Load CLERK_PUBLIC from .dev.vars (local dev) or process.env (Cloudflare build)
+function readOptional(file: string): string | null {
+  try { return readFileSync(file, 'utf-8') } catch { return null }
+}
+
+// process.env override, then a developer's .dev.vars, then the committed
+// production value in wrangler.jsonc (see scripts/lib/clerkPublicKey.ts).
 function getClerkPublicKey(): string {
-  if (process.env.CLERK_PUBLIC) return process.env.CLERK_PUBLIC
-  try {
-    const vars = readFileSync('.dev.vars', 'utf-8')
-    const match = vars.match(/^CLERK_PUBLIC=(.+)$/m)
-    return match?.[1]?.trim() ?? ''
-  } catch {
-    return ''
-  }
+  return resolveClerkPublicKey({
+    env: process.env.CLERK_PUBLIC,
+    devVars: readOptional('.dev.vars'),
+    wranglerConfig: readOptional('wrangler.jsonc'),
+  })
 }
 
 export default defineConfig({

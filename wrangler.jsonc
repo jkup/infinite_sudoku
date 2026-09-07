@@ -6,6 +6,16 @@
   "compatibility_flags": ["nodejs_compat"],
   // Note: "observability" is a Workers-only key. Pages build validation rejects
   // any config that contains it, which silently fails every deployment.
+  //
+  // This file is the source of truth for Pages variables: anything not listed
+  // here is removed from the project on deploy. The Clerk publishable key is
+  // public by design (it ships in the browser bundle), so it lives here for
+  // both the Functions runtime and the Vite build (see vite.config.ts).
+  // CLERK_SECRET is a dashboard secret: `wrangler pages secret put CLERK_SECRET`.
+  // Named environments do not inherit vars, so preview repeats them.
+  "vars": {
+    "CLERK_PUBLIC": "pk_live_Y2xlcmsuaW5maW5pdGVzdWRva3UuY29tJA"
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -16,6 +26,9 @@
   ],
   "env": {
     "preview": {
+      "vars": {
+        "CLERK_PUBLIC": "pk_live_Y2xlcmsuaW5maW5pdGVzdWRva3UuY29tJA"
+      },
       "d1_databases": [
         {
           "binding": "DB",
