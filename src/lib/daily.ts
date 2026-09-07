@@ -9,6 +9,23 @@ import { isPuzzleDefinitionValid } from '../engine/validator';
 
 export const DAILY_MODES: readonly GameMode[] = ['classic', 'killer'];
 
+/** The first date with canonical puzzles; nothing exists before it. */
+export const FIRST_DAILY_DATE = '2026-09-06';
+
+/**
+ * Dates that may have a daily, newest first: today back through `count` days,
+ * never earlier than FIRST_DAILY_DATE.
+ */
+export function recentDailyDates(today: string, count: number): string[] {
+  const dates: string[] = [];
+  for (let offset = 0; offset < count; offset++) {
+    const date = addDays(today, -offset);
+    if (date < FIRST_DAILY_DATE) break;
+    dates.push(date);
+  }
+  return dates;
+}
+
 /** Weekday difficulty rotation, indexed by UTC day (0 = Sunday). */
 const DIFFICULTY_BY_UTC_DAY: readonly Difficulty[] = [
   'expert', // Sunday

@@ -23,7 +23,7 @@ import { getQueuedCompletion, getQueuedCompletions, queueCompletion, removeQueue
 export type SessionPhase = 'generating' | 'playing' | 'paused' | 'completed' | 'failed' | 'nested-hint';
 
 /** What is being loaded while generationStatus is not idle; lets a failure retry the same request. */
-export type PendingGameSettings = { difficulty: Difficulty; mode: GameMode; daily?: boolean };
+export type PendingGameSettings = { difficulty: Difficulty; mode: GameMode; daily?: boolean; date?: string };
 export type SessionKind = 'game' | 'hint' | 'tutorial';
 
 export type GameSessionSnapshot = {
@@ -82,7 +82,8 @@ type GameState = {
 
   // Actions
   newGame: (difficulty: Difficulty, mode?: GameMode) => void;
-  startDaily: (mode: GameMode) => void;
+  /** Start the canonical daily for a mode; today by default, or a past UTC date. */
+  startDaily: (mode: GameMode, date?: string) => void;
   retryGeneration: () => void;
   selectCell: (pos: CellPosition | null) => void;
   placeDigit: (digit: Digit) => void;
@@ -380,16 +381,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     loadPuzzle(set, get, { difficulty, mode }, () => generatePuzzleAsync(difficulty, mode));
   },
 
-  startDaily: (mode) => {
-    const difficulty = dailyDifficultyFor(utcDateString());
-    loadPuzzle(set, get, { difficulty, mode, daily: true }, async () => {
+  startDaily: (mode, date) => {
+    const today = utcDateString();
+    const target = date ?? today;
+    const isToday = target === today;
+    const difficulty = dailyDifficultyFor(target);
+    loadPuzzle(set, get, { difficulty, mode, daily: true, ...(date ? { date } : {}) }, async () => {
       let puzzle: Puzzle | null;
       try {
-        puzzle = await getDailyPuzzle(mode);
+        puzzle = date ? await getDailyPuzzle(mode, date) : await getDailyPuzzle(mode);
       } catch {
-        throw new Error("Couldn't load today's daily puzzle. Check your connection and try again.");
+        throw new Error(`Couldn't load ${isToday ? "today's" : 'that'} daily puzzle. Check your connection and try again.`);
       }
-      if (!puzzle) throw new Error("Today's daily puzzle isn't ready yet. Please try again later.");
+      if (!puzzle) {
+        throw new Error(isToday
+          ? "Today's daily puzzle isn't ready yet. Please try again later."
+          : 'There is no daily puzzle for that date.');
+      }
       return puzzle;
     });
   },
@@ -397,7 +405,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   retryGeneration: () => {
     const settings = get().pendingGameSettings;
     if (!settings) return;
-    if (settings.daily) get().startDaily(settings.mode);
+    if (settings.daily) get().startDaily(settings.mode, settings.date);
     else get().newGame(settings.difficulty, settings.mode);
   },
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generatePuzzle } from '../engine/generator';
 import {
   addDays, dailyDifficultyFor, dailyPayloadFromPuzzle, isDailyDate, puzzleFromDailyPayload,
-  puzzleFromDailyRow, serializeDailyPuzzle, utcDateString, type DailyPuzzleRow,
+  puzzleFromDailyRow, recentDailyDates, serializeDailyPuzzle, utcDateString, type DailyPuzzleRow,
 } from './daily';
 
 describe('daily dates', () => {
@@ -22,6 +22,12 @@ describe('daily dates', () => {
   it('adds days across month and year boundaries', () => {
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+  });
+
+  it('lists recent dates newest first and stops at the first daily', () => {
+    expect(recentDailyDates('2026-09-08', 3)).toEqual(['2026-09-08', '2026-09-07', '2026-09-06']);
+    expect(recentDailyDates('2026-09-08', 10)).toEqual(['2026-09-08', '2026-09-07', '2026-09-06']);
+    expect(recentDailyDates('2026-09-05', 5)).toEqual([]);
   });
 
   it('rotates difficulty by UTC weekday', () => {

@@ -16,7 +16,7 @@ import DigitBar from './components/board/DigitBar';
 import ControlBar from './components/controls/ControlBar';
 import Timer from './components/controls/Timer';
 import GameModePicker from './components/controls/GameModePicker';
-import DailyButton from './components/controls/DailyButton';
+import DailyPicker, { DailyPickerWithProgress } from './components/controls/DailyPicker';
 import PuzzleStack from './components/hint/PuzzleStack';
 import ConfirmModal from './components/ui/ConfirmModal';
 import KeyboardHelp from './components/ui/KeyboardHelp';
@@ -285,7 +285,7 @@ function SignUpPage() {
 
 type PendingGame =
   | { kind: 'new'; difficulty: Difficulty; mode: GameMode }
-  | { kind: 'daily'; mode: GameMode };
+  | { kind: 'daily'; mode: GameMode; date: string };
 
 function GameScreen() {
   const newGame = useGameStore((s) => s.newGame);
@@ -386,7 +386,7 @@ function GameScreen() {
   }, [puzzle, newGame, loadSavedGame]);
 
   const beginPendingGame = useCallback((pending: PendingGame) => {
-    if (pending.kind === 'daily') startDaily(pending.mode);
+    if (pending.kind === 'daily') startDaily(pending.mode, pending.date === utcDateString() ? undefined : pending.date);
     else newGame(pending.difficulty, pending.mode);
   }, [newGame, startDaily]);
 
@@ -404,8 +404,8 @@ function GameScreen() {
     requestGame({ kind: 'new', difficulty: d, mode: m });
   }, [requestGame]);
 
-  const requestDaily = useCallback((m: GameMode) => {
-    requestGame({ kind: 'daily', mode: m });
+  const requestDaily = useCallback((m: GameMode, date: string) => {
+    requestGame({ kind: 'daily', mode: m, date });
   }, [requestGame]);
 
   const confirmNewGame = useCallback(() => {
@@ -452,7 +452,7 @@ function GameScreen() {
           </h1>
           <div className="flex items-center gap-1.5">
             <GameModePicker onRequestNewGame={requestNewGame} />
-            <DailyButton onRequestDaily={requestDaily} />
+            {CLERK_KEY ? <DailyPickerWithProgress onRequestDaily={requestDaily} /> : <DailyPicker onRequestDaily={requestDaily} />}
             {CLERK_KEY && <UserButton />}
             <Timer />
             <GearMenu onShowShortcuts={() => setShowKeyboardHelp(true)} />
@@ -528,7 +528,9 @@ function GameScreen() {
       {/* Confirm new game modal */}
       {pendingGame && (
         <ConfirmModal
-          title={pendingGame.kind === 'daily' ? "Start today's daily puzzle?" : 'Start new game?'}
+          title={pendingGame.kind === 'daily'
+            ? (pendingGame.date === utcDateString() ? "Start today's daily puzzle?" : `Start the daily for ${formatDailyDate(pendingGame.date)}?`)
+            : 'Start new game?'}
           message={isInHintStack
             ? "You're in a hint puzzle. Starting a new game will discard all progress including parent puzzles."
             : "Your current progress will be lost."
