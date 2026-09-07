@@ -31,6 +31,20 @@ describe('solver', () => {
     expect(result.steps).toBeGreaterThan(0);
   });
 
+  it('gives up cleanly on contradictory givens instead of looping', () => {
+    const contradictory = PUZZLE.map((row) => [...row]);
+    contradictory[0][2] = 5; // second 5 in row 0 and box 0
+    const result = solveWithLogic(contradictory);
+    expect(result.solved).toBe(false);
+    expect(solveBruteForce(contradictory)).toHaveLength(0);
+  });
+
+  it('reports non-uniqueness for an underconstrained grid', () => {
+    const empty: (Digit | null)[][] = Array.from({ length: 9 }, () => Array(9).fill(null));
+    expect(hasUniqueSolution(empty)).toBe(false);
+    expect(solveBruteForce(empty, 3)).toHaveLength(3);
+  });
+
   it('maps technique levels to public difficulties', () => {
     expect(techniqueToDifficulty(Technique.HiddenSingle)).toBe('easy');
     expect(techniqueToDifficulty(Technique.PointingPair)).toBe('medium');
