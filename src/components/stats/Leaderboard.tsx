@@ -1,30 +1,41 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { getLeaderboard, type LeaderboardResponse } from '../../lib/api';
 import { formatTime } from '../../lib/formatTime';
 import type { GameMode } from '../../engine/types';
+
+export type LeaderboardStanding = { rank: number; totalEntries: number };
 
 type Props = {
   date: string;
   mode: GameMode;
   /** Change this value to refetch, e.g. after the player's own result syncs. */
   refreshKey?: string | number;
+  /** Called with the player's standing (or null) each time a board loads. */
+  onStanding?: (standing: LeaderboardStanding | null) => void;
 };
 
 const numberFormat = new Intl.NumberFormat();
 
 /** Ranked results for one daily puzzle. Requires sign-in; the API is user-scoped. */
-export default function Leaderboard({ date, mode, refreshKey }: Props) {
+export default function Leaderboard({ date, mode, refreshKey, onStanding }: Props) {
   const { isSignedIn, isLoaded } = useAuth();
   // Each distinct request is keyed; a result for another key means we are still loading.
   const requestKey = `${date}|${mode}|${refreshKey ?? ''}`;
   const [result, setResult] = useState<{ key: string; board: LeaderboardResponse | null; error: boolean } | null>(null);
+  // Latest callback without making it a fetch dependency.
+  const onStandingRef = useRef(onStanding);
+  useEffect(() => { onStandingRef.current = onStanding; }, [onStanding]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
     let cancelled = false;
     getLeaderboard(date, mode)
-      .then((board) => { if (!cancelled) setResult({ key: requestKey, board, error: false }); })
+      .then((board) => {
+        if (cancelled) return;
+        setResult({ key: requestKey, board, error: false });
+        onStandingRef.current?.(board.you ? { rank: board.you.rank, totalEntries: board.totalEntries } : null);
+      })
       .catch(() => { if (!cancelled) setResult({ key: requestKey, board: null, error: true }); });
     return () => { cancelled = true; };
   }, [date, mode, isLoaded, isSignedIn, requestKey]);

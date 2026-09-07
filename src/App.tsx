@@ -25,8 +25,9 @@ import Confetti from './components/ui/Confetti';
 import UserButton from './components/auth/UserButton';
 import StatsPanel from './components/stats/StatsPanel';
 import ScoreSummary from './components/stats/ScoreSummary';
-import Leaderboard from './components/stats/Leaderboard';
-import { utcDateString } from './lib/daily';
+import Leaderboard, { type LeaderboardStanding } from './components/stats/Leaderboard';
+import ShareResultButton from './components/stats/ShareResultButton';
+import { formatDailyDate, utcDateString } from './lib/daily';
 import TutorialList from './components/tutorial/TutorialList';
 import TutorialLesson from './components/tutorial/TutorialLesson';
 import { setAuthTokenGetter } from './lib/api';
@@ -286,12 +287,6 @@ type PendingGame =
   | { kind: 'new'; difficulty: Difficulty; mode: GameMode }
   | { kind: 'daily'; mode: GameMode };
 
-function formatDailyDate(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
-    weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
-  });
-}
-
 function GameScreen() {
   const newGame = useGameStore((s) => s.newGame);
   const startDaily = useGameStore((s) => s.startDaily);
@@ -326,6 +321,13 @@ function GameScreen() {
 
   const [pendingGame, setPendingGame] = useState<PendingGame | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  // Keyed by daily so a standing from a previous daily is never shared as this one's.
+  const [dailyStanding, setDailyStanding] = useState<{ key: string; standing: LeaderboardStanding | null } | null>(null);
+  const dailyKey = puzzle?.daily ? `${puzzle.daily.date}|${mode}` : null;
+  const currentStanding = dailyKey && dailyStanding?.key === dailyKey ? dailyStanding.standing : null;
+  const recordStanding = useCallback((standing: LeaderboardStanding | null) => {
+    if (dailyKey) setDailyStanding({ key: dailyKey, standing });
+  }, [dailyKey, setDailyStanding]);
 
   const tutorialFocusDone = !!(
     isInTutorialPractice &&
@@ -610,7 +612,12 @@ function GameScreen() {
             <ScoreSummary />
             {puzzle.daily && CLERK_KEY && (
               <div className="mb-4">
-                <Leaderboard date={puzzle.daily.date} mode={mode} refreshKey={completionSyncStatus} />
+                <Leaderboard date={puzzle.daily.date} mode={mode} refreshKey={completionSyncStatus} onStanding={recordStanding} />
+              </div>
+            )}
+            {puzzle.daily && (
+              <div className="mb-4">
+                <ShareResultButton date={puzzle.daily.date} standing={currentStanding} />
               </div>
             )}
             <div className="mb-4 text-sm" aria-live="polite" style={{ color: 'var(--color-text-muted)' }}>
