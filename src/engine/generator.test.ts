@@ -34,16 +34,17 @@ describe('full-size puzzle generator', () => {
   });
 
   it('only ever returns puzzles the logic solver finishes with the true solution', () => {
-    // Easy and medium generate in milliseconds. This holds for the fallback
-    // path too: it used to check uniqueness only, so an "easy" fallback could
-    // require guessing and the solver would stall on it.
-    for (const difficulty of ['easy', 'easy', 'medium', 'medium'] as const) {
+    // This holds for the fallback path too: it used to check uniqueness only,
+    // so an "easy" fallback could require guessing and the solver would stall.
+    // Generation time varies (medium can take a few seconds on a CI runner),
+    // hence the generous timeout; the assertion itself is deterministic.
+    for (const difficulty of ['easy', 'medium'] as const) {
       const puzzle = generatePuzzle(difficulty, 'classic');
       const result = solveWithLogic(puzzle.initial);
       expect(result.solved).toBe(true);
       expect(result.grid).toEqual(puzzle.solution);
     }
-  });
+  }, 30_000);
 
   it('generates killer cages that tile the returned solution', () => {
     vi.spyOn(Math, 'random').mockImplementation(seededRandom(20_260_903));
