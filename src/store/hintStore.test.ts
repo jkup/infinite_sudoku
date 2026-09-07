@@ -125,7 +125,7 @@ describe('hint stack transitions', () => {
     expect(useHintStore.getState().stack).toHaveLength(0);
     expect(useGameStore.getState().grid).toHaveLength(9);
     expect(useGameStore.getState().elapsedMs).toBe(42_000);
-    expect(useGameStore.getState().hintsUsed).toBe(1);
+    expect(useGameStore.getState().hintsUsed).toBe(0); // giving up earns nothing, so it costs nothing
     expect(useGameStore.getState().grid[0][0].digit).toBeNull();
   });
 
@@ -137,7 +137,7 @@ describe('hint stack transitions', () => {
 
     const saved = JSON.parse(localStorage.getItem('infinite-sudoku-save')!);
     expect(saved.grid).toHaveLength(9);
-    expect(saved.hintsUsed).toBe(1);
+    expect(saved.hintsUsed).toBe(0); // not charged until the hint is earned
   });
 
   it('restores the exact timestamped parent time after nested hint play', async () => {

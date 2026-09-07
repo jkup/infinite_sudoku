@@ -60,8 +60,8 @@ export const useHintStore = create<HintState>((set, get) => ({
       return;
     }
 
-    // Increment hint count before snapshotting so it's preserved in the stack
-    game.incrementHintsUsed();
+    // The hint is charged when it is earned (see completeHintPuzzle), so
+    // giving up or a failed generation costs nothing.
     const captured = useGameStore.getState().captureSession();
     if (!captured) return;
 
@@ -96,7 +96,7 @@ export const useHintStore = create<HintState>((set, get) => ({
       }, 'hint');
     }).catch(() => {
       set({ stack: get().stack.filter((entry) => entry !== snapshot), transition: null });
-      useGameStore.getState().replaceSession({ ...snapshot, hintsUsed: game.hintsUsed }, get().stack.length > 0 ? 'hint' : 'game');
+      useGameStore.getState().replaceSession(snapshot, get().stack.length > 0 ? 'hint' : 'game');
     });
   },
 
@@ -112,9 +112,9 @@ export const useHintStore = create<HintState>((set, get) => ({
 
     // Restore the parent, then route the earned reveal through the same domain
     // transition as a normal placement so notes, history, completion, and sync
-    // behavior cannot drift apart.
+    // behavior cannot drift apart. This is the moment the hint is charged.
     useGameStore.getState().replaceSession(parent, newStack.length > 0 ? 'hint' : 'game', parent.hintCell);
-    useGameStore.getState().revealHint(parent.hintCell, parent.hintDigit, false);
+    useGameStore.getState().revealHint(parent.hintCell, parent.hintDigit, true);
   },
 
   abandonHintPuzzle: () => {
