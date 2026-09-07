@@ -29,6 +29,7 @@ vi.mock('../lib/api', () => ({ postGameResult: vi.fn().mockResolvedValue(undefin
 import { useGameStore } from './gameStore';
 import { useHintStore } from './hintStore';
 import { postGameResult } from '../lib/api';
+import { generateMiniPuzzleAsync } from '../engine/generateAsync';
 
 const solution = Array.from({ length: 9 }, (_, row) =>
   Array.from({ length: 9 }, (_, col) => ((row * 3 + Math.floor(row / 3) + col) % 9 + 1) as Digit),
@@ -183,4 +184,54 @@ describe('hint stack transitions', () => {
     expect(useHintStore.getState().stack).toHaveLength(1);
     expect(postGameResult).not.toHaveBeenCalled();
   });
+  it('ignores hint requests without a selection, on givens, on filled cells, or while paused', () => {
+    reset('medium');
+    const hint = useHintStore.getState();
+    useGameStore.setState({ selectedCell: null });
+    hint.requestHint();
+    useGameStore.setState({ selectedCell: { row: 0, col: 1 } }); // a given
+    hint.requestHint();
+    useGameStore.setState({ selectedCell: { row: 0, col: 0 }, status: 'paused' });
+    hint.requestHint();
+    expect(useHintStore.getState().stack).toHaveLength(0);
+    expect(useGameStore.getState().hintsUsed).toBe(0);
+    useGameStore.setState({ status: 'playing' });
+    useGameStore.getState().placeDigit(solution[0][0]);
+    // completed now; nothing to hint
+    hint.requestHint();
+    expect(useHintStore.getState().stack).toHaveLength(0);
+  });
+
+  it('rolls the stack back and restores the parent when the easier puzzle cannot be generated', async () => {
+    reset('medium');
+    vi.mocked(generateMiniPuzzleAsync).mockRejectedValueOnce(new Error('worker failed'));
+    useHintStore.getState().requestHint();
+    expect(useHintStore.getState().stack).toHaveLength(1);
+    await vi.waitFor(() => expect(useHintStore.getState().stack).toHaveLength(0));
+    const game = useGameStore.getState();
+    expect(game.sessionKind).toBe('game');
+    expect(game.puzzle?.difficulty).toBe('medium');
+    expect(game.hintsUsed).toBe(0); // the failed hint is not charged
+    expect(useHintStore.getState().transition).toBeNull();
+  });
+
+  it('can abandon several nested hint levels at once back to a chosen parent', async () => {
+    reset('expert');
+    useHintStore.getState().requestHint(); // expert → hard mini
+    await vi.waitFor(() => expect(useGameStore.getState().sessionKind).toBe('hint'));
+    useGameStore.getState().selectCell({ row: 0, col: 0 });
+    useHintStore.getState().requestHint(); // hard mini → medium mini
+    await vi.waitFor(() => expect(useHintStore.getState().stack).toHaveLength(2));
+
+    useHintStore.getState().abandonToLevel(5); // out of range → ignored
+    expect(useHintStore.getState().stack).toHaveLength(2);
+    useHintStore.getState().abandonToLevel(0);
+    expect(useHintStore.getState().stack).toHaveLength(0);
+    expect(useGameStore.getState().puzzle?.difficulty).toBe('expert');
+    expect(useGameStore.getState().sessionKind).toBe('game');
+    expect(useHintStore.getState().transition).toBe('back');
+    useHintStore.getState().clearTransition();
+    expect(useHintStore.getState().transition).toBeNull();
+  });
 });
+
