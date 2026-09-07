@@ -227,6 +227,16 @@ body {
   outline: 3px solid var(--color-text);
   outline-offset: 3px;
 }
+/* Tailwind 4's preflight leaves buttons with the default arrow cursor and no
+   press feedback. Restore both for every enabled button and summary so
+   controls read as clickable without per-component classes. Disabled
+   controls keep the arrow. Low specificity so components can still override. */
+:where(button, summary, [role="button"]):not(:disabled) {
+  cursor: pointer;
+}
+:where(button, summary, [role="button"]):not(:disabled):active {
+  filter: brightness(0.95);
+}
 
 /* Persistent shapes supplement state colors without covering digits or notes. */
 .sudoku-cell[aria-selected="true"]::before {
