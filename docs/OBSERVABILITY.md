@@ -7,35 +7,44 @@ headers, tokens, request bodies, Clerk secrets, or user IDs. Endpoint failures
 are categorized as `validation`, `authentication`, `database`, `upstream`, or
 `unexpected`.
 
-## Dashboard checks and alerts
+## What logs exist
 
-In **Workers & Pages → infinite-sudoku → Observability**, save views for:
+Pages Functions logs are live-only. Cloudflare does not store them: you can
+stream them while a problem is happening, but nothing can be searched after the
+fact. There is no dashboard setting that changes this for Pages, and the Workers
+`observability` config key does not apply (Pages build validation rejects it and
+fails the deployment). Stream logs with:
 
-- status `>= 500`, grouped by endpoint and failure category, over 5 and 30 minutes;
-- `/api/stats` POST failures, especially `database` failures;
-- authentication/upstream failures, which may indicate Clerk configuration or
-  availability problems;
-- p95 duration by endpoint and trace samples for slow requests.
+```sh
+npx wrangler pages deployment tail --project-name infinite-sudoku
+```
 
-For expected low traffic, page an operator when either condition persists for
-five minutes: five or more server errors, or a server-error ratio above 5% with
-at least 20 requests. Warn (without paging) on ten authentication/upstream
-failures in five minutes. Review the dashboard weekly even if no alert fires.
+or from **Workers & Pages → infinite-sudoku → Deployments → View details → Functions
+logs** in the dashboard. Persisted, searchable logs would require moving the
+app from Pages to a Worker with static assets; that is a deliberate future
+project, not a configuration change.
+
+## Metrics and alerts
+
+Pages exposes request counts, error rates, and CPU time per deployment under
+**Workers & Pages → infinite-sudoku → Metrics**. Review them weekly. Cloudflare
+notifications can alert on Pages deployment failures; enable that so a broken
+build is noticed the same day.
 
 ## Incident diagnosis
 
-1. Ask the player for the reference shown beside “Stats not synced.”
-2. Search persisted logs for that exact request ID.
-3. Use endpoint, failure category, status, and duration to choose the owner; do
-   not request or record their token.
-4. For database failures, inspect D1 health and migration state. For upstream
-   failures, inspect Clerk status and environment configuration.
-5. After recovery, the player can select **Retry stats sync**. The queued request
+1. Ask the player for the reference shown beside “Stats not synced” and roughly
+   when it happened. The reference is the `X-Request-ID` the middleware logged.
+2. If the problem is ongoing, start `wrangler pages deployment tail` and ask the
+   player to select **Retry stats sync**; the retried request logs a new record
+   with endpoint, failure category, status, and duration. The queued request
    keeps its original completion ID, so server idempotency prevents double stats.
+3. Use the failure category to choose the owner; do not request or record the
+   player's token.
+4. For `database` failures, inspect D1 health and migration state
+   (`wrangler d1 migrations list DB --remote`). For `authentication` or
+   `upstream` failures, inspect Clerk status and the `CLERK_SECRET` and
+   `CLERK_PUBLIC` configuration.
+5. Once recovered, the player can retry and the completion syncs normally.
 
-Log persistence and sampling for Pages Functions are configured in the
-dashboard project settings, not in `wrangler.jsonc`: the Workers `observability`
-key is rejected by Pages build validation and fails the whole deployment. For a
-live view use `npx wrangler pages deployment tail --project-name infinite-sudoku`.
-Revisit sampling when traffic or retention cost grows; never solve volume by
-adding payload or identity data to logs.
+Never solve log volume or gaps by adding payload or identity data to logs.

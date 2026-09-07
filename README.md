@@ -239,8 +239,8 @@ missing configuration, invalid tokens, and Clerk verification errors all return
 401 without invoking an API handler. Non-API asset requests remain available if
 authentication is unavailable. Tests enforce this boundary.
 
-See [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) for correlation-ID diagnosis,
-redaction rules, saved dashboard views, and alert thresholds.
+See [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) for what logs exist (live-only
+on Pages), correlation-ID diagnosis, redaction rules, and metrics to review.
 
 ## Custom domain and rollback
 
