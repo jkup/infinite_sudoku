@@ -59,3 +59,16 @@ export function keyFromWranglerConfig(jsonc: string | null | undefined): string 
 export function resolveClerkPublicKey({ env, devVars, wranglerConfig }: KeySources): string {
   return env?.trim() || keyFromDevVars(devVars) || keyFromWranglerConfig(wranglerConfig);
 }
+
+/**
+ * The Frontend API host encoded in a Clerk publishable key (`pk_live_<base64 host$>`).
+ * Clerk's script and API calls load from this host, so the Content Security
+ * Policy must allow it. Returns null for a malformed key.
+ */
+export function clerkFrontendApiHost(publishableKey: string): string | null {
+  const encoded = publishableKey.match(/^pk_(?:live|test)_([A-Za-z0-9+/=]+)$/)?.[1];
+  if (!encoded) return null;
+  const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+  const host = decoded.endsWith('$') ? decoded.slice(0, -1) : decoded;
+  return /^[a-z0-9.-]+$/i.test(host) ? host : null;
+}

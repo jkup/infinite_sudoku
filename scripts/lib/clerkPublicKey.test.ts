@@ -1,7 +1,16 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { keyFromWranglerConfig, resolveClerkPublicKey, stripJsonComments } from './clerkPublicKey';
+import { clerkFrontendApiHost, keyFromWranglerConfig, resolveClerkPublicKey, stripJsonComments } from './clerkPublicKey';
+
+describe('clerkFrontendApiHost', () => {
+  it('decodes the host from live and test keys and rejects malformed ones', () => {
+    expect(clerkFrontendApiHost(`pk_live_${Buffer.from('clerk.example.com$').toString('base64')}`)).toBe('clerk.example.com');
+    expect(clerkFrontendApiHost(`pk_test_${Buffer.from('bright-fox-12.clerk.accounts.dev$').toString('base64')}`)).toBe('bright-fox-12.clerk.accounts.dev');
+    expect(clerkFrontendApiHost('sk_live_notapublishablekey')).toBeNull();
+    expect(clerkFrontendApiHost(`pk_live_${Buffer.from('not a host').toString('base64')}`)).toBeNull();
+  });
+});
 
 const wrangler = `{
   // comment with "quotes" and a // nested marker

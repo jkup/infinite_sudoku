@@ -149,7 +149,9 @@ Clear site data between cache-strategy tests.
 
 Production response policy is declared in `public/_headers`: HTML, the manifest,
 and service-worker files revalidate; fingerprinted `/assets/*` files cache for a
-year as immutable. The CSP permits the Clerk frontend, bot-protection frames,
+year as immutable. The CSP must list the Clerk Frontend API host encoded in the
+committed publishable key (`clerk.infinitesudoku.com` for production; a test
+in `tests/csp-headers.test.ts` enforces this) and permits bot-protection frames,
 first-party workers, and inline styles required by Clerk, while denying framing
 and unused browser capabilities. Pages Functions add `private, no-store` and
 security headers directly because `_headers` rules apply only to static assets.
