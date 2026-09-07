@@ -159,20 +159,27 @@ export function generatePuzzle(
   const solution = generateFilledGrid();
   const puzzle = solution.map((row) => [...row]) as (Digit | null)[][];
 
-  // Remove cells conservatively for an easy puzzle
+  // Remove cells conservatively for an easy puzzle. Each removal must keep the
+  // puzzle unique AND solvable with easy techniques, so the 'easy' label below
+  // is truthful and the player never needs to guess.
   const positions = shuffle(
     Array.from({ length: 81 }, (_, i) => ({
       row: Math.floor(i / 9),
       col: i % 9,
     }))
   );
+  const easyLevel = DIFFICULTY_ORDER.indexOf('easy');
 
   let removed = 0;
   for (const { row, col } of positions) {
     if (removed >= 81 - CLUE_TARGETS.easy.max) break;
     const saved = puzzle[row][col];
     puzzle[row][col] = null;
-    if (!hasUniqueSolution(puzzle)) {
+    const stillEasy = hasUniqueSolution(puzzle) && (() => {
+      const result = solveWithLogic(puzzle);
+      return result.solved && DIFFICULTY_ORDER.indexOf(techniqueToDifficulty(result.maxTechnique)) <= easyLevel;
+    })();
+    if (!stillEasy) {
       puzzle[row][col] = saved;
       continue;
     }
