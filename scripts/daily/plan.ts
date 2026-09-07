@@ -1,4 +1,5 @@
 import type { Difficulty, GameMode, Puzzle } from '../../src/engine/types';
+import { DifficultyUnreachableError, generateMatching } from '../../src/engine/difficultyRetry';
 import { DAILY_MODES, addDays, dailyDifficultyFor, isDailyDate, serializeDailyPuzzle } from '../../src/lib/daily';
 
 /** One canonical puzzle that should exist. */
@@ -28,10 +29,9 @@ export function missingDailies(plan: DailyPlanEntry[], existing: Array<{ date: s
 }
 
 /**
- * Generate a puzzle whose classified difficulty matches the plan exactly.
- * The engine falls back to an easy puzzle when it cannot hit the target within
- * its own attempt budget, so retry a bounded number of times rather than store
- * a mislabeled daily.
+ * Generate a puzzle whose classified difficulty matches the plan exactly, using
+ * the engine's shared retry policy, and name the date if it never matches so a
+ * failed pipeline run says which daily is missing.
  */
 export function generateForPlan(
   entry: DailyPlanEntry,
@@ -39,12 +39,14 @@ export function generateForPlan(
   attempts = 5,
   onRetry?: (attempt: number, got: Difficulty) => void,
 ): Puzzle {
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    const puzzle = generate(entry.difficulty, entry.mode);
-    if (puzzle.difficulty === entry.difficulty && puzzle.mode === entry.mode) return puzzle;
-    onRetry?.(attempt, puzzle.difficulty);
+  try {
+    return generateMatching(entry.difficulty, entry.mode, generate, { attempts, onMiss: onRetry });
+  } catch (error) {
+    if (error instanceof DifficultyUnreachableError) {
+      throw new Error(`Could not generate a ${entry.difficulty} ${entry.mode} puzzle for ${entry.date} after ${attempts} attempts`, { cause: error });
+    }
+    throw error;
   }
-  throw new Error(`Could not generate a ${entry.difficulty} ${entry.mode} puzzle for ${entry.date} after ${attempts} attempts`);
 }
 
 function sqlString(value: string): string {

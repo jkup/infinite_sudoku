@@ -1,6 +1,7 @@
 import type { Difficulty, GameMode, Puzzle } from './types';
 import { generatePuzzle } from './generator';
 import { generateMiniPuzzle } from './miniGenerator';
+import { generateMatchingAsync } from './difficultyRetry';
 
 type WorkerRequest = { requestId: string; difficulty: Difficulty; mode: GameMode };
 type WorkerResponse = { requestId: string; puzzle: Puzzle } | { requestId: string; error: string };
@@ -61,8 +62,18 @@ function getWorker(): Worker | null {
   }
 }
 
-/** Generate off the main thread, falling back synchronously only when Workers are unavailable. */
+/**
+ * Generate off the main thread, falling back synchronously only when Workers
+ * are unavailable. Guarantees the requested difficulty and mode by retrying
+ * when the generator falls back to an easier puzzle; rejects with
+ * DifficultyUnreachableError if it never matches.
+ */
 export function generatePuzzleAsync(difficulty: Difficulty, mode: GameMode): Promise<Puzzle> {
+  return generateMatchingAsync(difficulty, mode, generateOnce);
+}
+
+/** One generator run, unchecked: the worker (or sync fallback) returns whatever it could make. */
+function generateOnce(difficulty: Difficulty, mode: GameMode): Promise<Puzzle> {
   const currentWorker = getWorker();
   if (!currentWorker) return Promise.resolve(generatePuzzle(difficulty, mode));
 
