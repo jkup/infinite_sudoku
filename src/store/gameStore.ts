@@ -85,6 +85,7 @@ type GameState = {
   /** Start the canonical daily for a mode; today by default, or a past UTC date. */
   startDaily: (mode: GameMode, date?: string) => void;
   retryGeneration: () => void;
+  dismissGenerationError: () => void;
   selectCell: (pos: CellPosition | null) => void;
   placeDigit: (digit: Digit) => void;
   revealHint: (pos: CellPosition, digit: Digit, incrementUsage?: boolean) => void;
@@ -341,7 +342,6 @@ function loadPuzzle(
     generationError: null,
     pendingGameSettings: settings,
     sessionPhase: 'generating',
-    sessionKind: 'game',
   });
 
   load().then((puzzle) => {
@@ -413,6 +413,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!settings) return;
     if (settings.daily) get().startDaily(settings.mode, settings.date);
     else get().newGame(settings.difficulty, settings.mode);
+  },
+
+  dismissGenerationError: () => {
+    const state = get();
+    if (state.generationStatus !== 'error' || !state.puzzle) return;
+    set({
+      generationStatus: 'idle',
+      generationError: null,
+      pendingGameSettings: null,
+      sessionPhase: state.status === 'playing'
+        ? (state.sessionKind === 'hint' ? 'nested-hint' : 'playing')
+        : state.status,
+    });
+    if (state.status === 'playing') startTimer(set, get, state.elapsedMs);
   },
 
   selectCell: (pos) => {
@@ -904,6 +918,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   autoPause: () => {
+    if (get().generationStatus !== 'idle') return;
     const { status } = get();
     if (status === 'playing') {
       stopTimer(set);
@@ -912,6 +927,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   autoResume: () => {
+    if (get().generationStatus !== 'idle') return;
     const { status, pausedByUser } = get();
     if (status === 'paused' && !pausedByUser) {
       set({ status: 'playing', sessionPhase: get().sessionKind === 'hint' ? 'nested-hint' : 'playing' });

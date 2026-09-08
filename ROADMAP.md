@@ -796,3 +796,33 @@ Before promoting one of these, write a small product brief covering the target p
 3. **Authoritative, validated, idempotent result submission** (`API-001`, `API-002`).
 4. **Race-safe puzzle generation and loading/error UI** (`GAME-002`, `UI-001`).
 5. **Unified completion transition fixing hint/timer behavior** (`GAME-001`, first portion of `GAME-003`).
+
+## Mobile audit follow-ups — 2026-09-08
+
+Complete these focused fixes in order, with a separate PR for each. The broader
+UI-001 and UI-002 acceptance criteria remain tracked above.
+
+### MOBILE-001: Escape failed Daily loads
+
+**Acceptance criteria:** Retry remains available; Back to Puzzle and Escape
+restore the retained board, notes and history; waiting does not advance its
+timer; recovery starts only one timer.
+
+**Status:** Complete — 2026-09-08. Store/component regression tests and
+`npm run check` pass. Chrome at 375×667 verified the named error dialog, initial
+focus, button dismissal, native Escape, and retained board.
+
+### MOBILE-002: Keep narrow-screen header controls on-screen
+
+**Acceptance criteria:** Header controls fit at 320px and common phone widths,
+including long mode labels and timers, with usable wrapping.
+
+### MOBILE-003: Keep the Daily picker within the viewport
+
+**Acceptance criteria:** All picker content remains reachable at 320px and
+common phone widths, after resizing, with keyboard selection preserved.
+
+### MOBILE-004: Enlarge small mobile tap targets
+
+**Acceptance criteria:** Pause/resume and dismiss-notice controls have at least
+44×44 CSS pixel targets, remain operable, and cause no narrow-screen overflow.

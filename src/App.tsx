@@ -291,6 +291,7 @@ function GameScreen() {
   const newGame = useGameStore((s) => s.newGame);
   const startDaily = useGameStore((s) => s.startDaily);
   const retryGeneration = useGameStore((s) => s.retryGeneration);
+  const dismissGenerationError = useGameStore((s) => s.dismissGenerationError);
   const puzzle = useGameStore((s) => s.puzzle);
   const status = useGameStore((s) => s.status);
   const difficulty = useGameStore((s) => s.difficulty);
@@ -504,14 +505,27 @@ function GameScreen() {
       <DigitBar />
 
       {generationStatus !== 'idle' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--color-overlay-bg)' }} role="status" aria-live="polite">
+        <Modal
+          key={generationStatus}
+          onDismiss={generationStatus === 'error' ? dismissGenerationError : undefined}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'var(--color-overlay-bg)' }}
+          aria-label="Puzzle loading"
+        >
           <div className="rounded-2xl p-6 shadow-xl text-center max-w-sm mx-4" style={{ backgroundColor: 'var(--color-card-bg)' }}>
             {generationStatus === 'loading' ? (
-              <p className="font-semibold">{pendingGameSettings?.daily ? "Loading today's daily puzzle…" : 'Generating your puzzle…'}</p>
+              <p className="font-semibold" role="status">{pendingGameSettings?.daily ? "Loading today's daily puzzle…" : 'Generating your puzzle…'}</p>
             ) : (
               <>
                 <h2 className="text-xl font-bold mb-2">Couldn&apos;t {pendingGameSettings?.daily ? 'load the daily' : 'create a'} puzzle</h2>
                 <p className="mb-4" style={{ color: 'var(--color-text-muted)' }}>{generationError}</p>
+                <button
+                  className="px-5 py-2.5 rounded-xl font-semibold mr-2"
+                  style={{ backgroundColor: 'var(--color-btn-bg)', color: 'var(--color-btn-text)' }}
+                  onClick={dismissGenerationError}
+                >
+                  Back to Puzzle
+                </button>
                 <button
                   className="px-5 py-2.5 rounded-xl font-semibold"
                   style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }}
@@ -522,7 +536,7 @@ function GameScreen() {
               </>
             )}
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Confirm new game modal */}
