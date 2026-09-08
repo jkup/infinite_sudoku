@@ -9,7 +9,9 @@ Native controls keep their keyboard behavior: Space activates buttons, and arrow
 keys operate the theme selector.
 
 Settings and game settings are non-modal dialog popups containing native controls.
-Enter or Space opens them and focuses the first control. Tab/Shift+Tab navigates;
+Enter or Space opens them. Settings focuses its panel so opening it on mobile
+does not activate the native theme picker; Tab reaches the theme selector. Game
+settings focuses its first control. Tab/Shift+Tab navigates;
 Escape closes and returns to the trigger. Moving focus outside closes the popup
 without pulling focus back. The triggers expose expanded state and popup identity.
 Mode and difficulty choices expose their selected state with `aria-pressed`.
