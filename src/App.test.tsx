@@ -117,6 +117,32 @@ describe('App game screen', () => {
     expect(mocks.take).toHaveBeenCalledTimes(2);
   });
 
+  it.each(['button', 'Escape'])('returns from a failed daily using %s without losing notes', async (dismiss) => {
+    mocks.take.mockResolvedValueOnce(makePuzzle([[0, 0], [0, 1]]));
+    mocks.daily.mockRejectedValue(new Error('offline'));
+    render(<App />);
+    await screen.findAllByRole('gridcell');
+    await user.click(screen.getByRole('gridcell', { name: /^Row 1, Column 1,/ }));
+    await user.click(screen.getByRole('button', { name: 'Corner' }));
+    await user.click(screen.getByRole('button', { name: 'Place digit 1' }));
+    await user.click(screen.getByRole('button', { name: /Daily/ }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Daily puzzles' })).getAllByRole('button')[0]);
+    await user.click(screen.getByRole('button', { name: 'Play Daily' }));
+    const error = await screen.findByRole('dialog', { name: "Couldn't load the daily puzzle" });
+    expect(within(error).getByRole('button', { name: 'Back to Puzzle' })).toHaveFocus();
+    await user.click(within(error).getByRole('button', { name: 'Try Again' }));
+    const retried = await screen.findByRole('dialog', { name: "Couldn't load the daily puzzle" });
+    expect(mocks.daily).toHaveBeenCalledTimes(2);
+    if (dismiss === 'button') await user.click(within(retried).getByRole('button', { name: 'Back to Puzzle' }));
+    else fireEvent(retried, new Event('cancel', { cancelable: true }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('gridcell', { name: /^Row 1, Column 1,/ })).toHaveAccessibleName(/corner notes 1/);
+    await user.click(screen.getByRole('gridcell', { name: /^Row 1, Column 2,/ }));
+    await user.click(screen.getByRole('button', { name: 'Digit' }));
+    await user.click(screen.getByRole('button', { name: 'Place digit 2' }));
+    expect(useGameStore.getState().grid[0][1].digit).toBe(2);
+  });
+
   it('celebrates completion with a score, syncs the result, and starts a new game on request', async () => {
     mocks.take.mockResolvedValue(makePuzzle([[0, 0]]));
     render(<App />);

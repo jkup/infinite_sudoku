@@ -99,3 +99,16 @@ motion, reveal an empty Easy cell, and verify the answer has a static outline.
 Enter/leave a nested hint puzzle and verify there is no slide; completion should
 show its summary without confetti. Toggle the preference during an open session
 to check that it applies without reloading.
+
+## Mobile audit fixes — 2026-09-08
+
+Failed replacement puzzle loads use a named modal with Retry and Back to Puzzle.
+Back to Puzzle receives initial focus; Escape also returns to the retained board.
+The board, notes and history survive, and its timer excludes loading/error time.
+Loading uses a non-dismissible modal to prevent background input. Regression
+tests cover repeated retry, both dismissal paths, notes, resumed play, and timer
+recovery. This addresses the mobile audit's Daily error trap; the wider UI-001
+loading/empty-state work remains open.
+Chrome verification at 375×667 confirmed the error card fits, Back to Puzzle
+is initially focused, and both it and native Escape restore the retained board.
+`npm run check` passed with 257 unit tests and 38 Workers integration tests.

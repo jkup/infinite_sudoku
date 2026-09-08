@@ -172,6 +172,52 @@ describe('game store transitions', () => {
     expect(useGameStore.getState().generationError).toContain('Check your connection');
   });
 
+  it('returns from a failed daily to the existing board and resumes one timer without counting the failed load', async () => {
+    useGameStore.getState().pauseGame();
+    useGameStore.getState().resumeGame();
+    await vi.advanceTimersByTimeAsync(2000);
+    useGameStore.getState().selectCell({ row: 0, col: 0 });
+    useGameStore.getState().setInputMode('corner');
+    useGameStore.getState().placeDigit(4);
+    const before = useGameStore.getState();
+    vi.mocked(getDailyPuzzle).mockRejectedValueOnce(new Error('offline'));
+    useGameStore.getState().startDaily('classic');
+    useGameStore.getState().autoPause();
+    useGameStore.getState().autoResume();
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(useGameStore.getState().elapsedMs).toBe(2000);
+
+    useGameStore.getState().dismissGenerationError();
+    useGameStore.getState().dismissGenerationError();
+    const restored = useGameStore.getState();
+    expect(restored).toMatchObject({ generationStatus: 'idle', generationError: null, pendingGameSettings: null, sessionPhase: 'playing' });
+    expect(restored.puzzle).toBe(before.puzzle);
+    expect(restored.grid).toBe(before.grid);
+    expect(restored.history).toBe(before.history);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(useGameStore.getState().elapsedMs).toBe(4000);
+  });
+
+  it('does not dismiss an initial failure or a pending request, or resume a paused board', async () => {
+    useGameStore.setState({ puzzle: null, generationStatus: 'error' });
+    useGameStore.getState().dismissGenerationError();
+    expect(useGameStore.getState().generationStatus).toBe('error');
+    resetGame();
+    useGameStore.getState().pauseGame();
+    let reject!: (error: Error) => void;
+    vi.mocked(getDailyPuzzle).mockReturnValueOnce(new Promise((_, no) => { reject = no; }));
+    useGameStore.getState().startDaily('classic');
+    useGameStore.getState().dismissGenerationError();
+    expect(useGameStore.getState().generationStatus).toBe('loading');
+    reject(new Error('offline'));
+    await vi.waitFor(() => expect(useGameStore.getState().generationStatus).toBe('error'));
+    useGameStore.getState().dismissGenerationError();
+    expect(useGameStore.getState()).toMatchObject({ generationStatus: 'idle', status: 'paused', sessionPhase: 'paused' });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(useGameStore.getState().elapsedMs).toBe(0);
+  });
+
   it('prefetches the next puzzle for the settings of each game it starts or restores', async () => {
     mockPrefetchPuzzle.mockClear();
     mockGeneratePuzzleAsync.mockResolvedValueOnce({ ...makePuzzle(), difficulty: 'expert' });
