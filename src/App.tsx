@@ -71,7 +71,7 @@ function ThemePicker() {
 function GearMenu({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   const [open, setOpen] = useState(false);
   const [showStats, setShowStats] = useState(false);
-  const { ref, triggerRef, id } = usePopup(open ? 'settings' : showStats ? 'stats' : false, () => { setOpen(false); setShowStats(false); });
+  const { ref, triggerRef, id } = usePopup(open ? 'settings' : showStats ? 'stats' : false, () => { setOpen(false); setShowStats(false); }, 'panel');
   const checkAnswers = usePreferencesStore((s) => s.checkAnswers);
   const setCheckAnswers = usePreferencesStore((s) => s.setCheckAnswers);
   const mode = useGameStore((s) => s.mode);

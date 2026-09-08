@@ -87,6 +87,26 @@ describe('App game screen', () => {
     expect(screen.queryByText('Generating your puzzle…')).not.toBeInTheDocument();
   });
 
+  it('opens settings without focusing the native theme picker and keeps keyboard navigation', async () => {
+    mocks.take.mockResolvedValueOnce(makePuzzle([[0, 0]]));
+    render(<App />);
+    await screen.findAllByRole('gridcell');
+    const trigger = screen.getByRole('button', { name: 'Settings' });
+    await user.pointer([{ keys: '[TouchA>]', target: trigger }, { keys: '[/TouchA]' }]);
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toHaveFocus();
+    expect(screen.getByRole('combobox', { name: 'Theme' })).not.toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveFocus();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Theme' }), 'dark');
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('dark');
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveFocus();
+  });
+
   it('shows a retryable error when generation fails', async () => {
     mocks.take.mockRejectedValueOnce(new Error('Worker crashed')).mockResolvedValueOnce(makePuzzle([[0, 0]]));
     render(<App />);

@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef } from 'react';
 
 /** A non-modal dialog for mixed native controls, navigated with Tab. */
-export function usePopup(open: boolean | string, onClose: () => void) {
+export function usePopup(open: boolean | string, onClose: () => void, initialFocus: 'control' | 'panel' = 'control') {
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -13,7 +13,9 @@ export function usePopup(open: boolean | string, onClose: () => void) {
     const root = ref.current!;
     const trigger = triggerRef.current!;
     const panel = root.querySelector<HTMLElement>('[data-game-popup]')!;
-    (panel.querySelector<HTMLElement>('button, select, input') ?? panel).focus();
+    // Focusing a native select during a touch gesture can open the OS picker.
+    const target = initialFocus === 'panel' ? panel : panel.querySelector<HTMLElement>('button, select, input');
+    (target ?? panel).focus();
     const outside = (event: MouseEvent) => {
       if (!root.contains(event.target as Node)) closeRef.current();
     };
@@ -38,7 +40,7 @@ export function usePopup(open: boolean | string, onClose: () => void) {
       // Restore before a replacement modal captures its return destination.
       if (panel.contains(document.activeElement) || document.activeElement === document.body) trigger.focus();
     };
-  }, [open]);
+  }, [open, initialFocus]);
 
   return { ref, triggerRef, id };
 }
