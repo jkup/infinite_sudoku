@@ -112,3 +112,11 @@ loading/empty-state work remains open.
 Chrome verification at 375×667 confirmed the error card fits, Back to Puzzle
 is initially focused, and both it and native Escape restore the retained board.
 `npm run check` passed with 257 unit tests and 38 Workers integration tests.
+
+## Mobile audit fixes — 2026-09-09
+
+Header controls wrap instead of overflowing 320px viewports. Popup panels from
+`usePopup` (game settings, daily list, settings, statistics) are clamped inside
+the viewport with an 8px margin after opening and on resize, so a panel under a
+mid-header trigger no longer runs off the right edge at 320–375px. Hook tests
+cover fitting, right-edge overflow, left-edge priority, resize, and cleanup.
