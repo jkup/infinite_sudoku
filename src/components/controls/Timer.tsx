@@ -19,7 +19,8 @@ export default function Timer() {
       {(status === 'playing' || status === 'paused') && (
         <button
           onClick={status === 'playing' ? pauseGame : resumeGame}
-          className="text-sm transition-colors"
+          // 44px hit area without changing the header row height.
+          className="inline-flex items-center justify-center min-w-11 min-h-11 -my-1.5 rounded-lg text-sm transition-colors"
           style={{ color: 'var(--color-text-muted)' }}
           title={status === 'playing' ? 'Pause (Space)' : 'Resume (Space)'}
           aria-label={status === 'playing' ? 'Pause game' : 'Resume game'}

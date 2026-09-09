@@ -120,3 +120,8 @@ Header controls wrap instead of overflowing 320px viewports. Popup panels from
 the viewport with an 8px margin after opening and on resize, so a panel under a
 mid-header trigger no longer runs off the right edge at 320–375px. Hook tests
 cover fitting, right-edge overflow, left-edge priority, resize, and cleanup.
+The pause/resume control and the offline-ready dismiss button have a 44px
+minimum hit area (the audit measured them at roughly 9×20px and 10×24px), using
+negative margins so the header row and notice card keep their height. The
+update notice's Later button got the same minimum height. Component tests
+assert the size classes and the pause, resume, and dismiss behaviour.
