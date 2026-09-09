@@ -27,14 +27,21 @@ export default function PwaLifecycle() {
           <p className="font-semibold">An update is ready.</p>
           <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>Your puzzle is saved. Update when you are ready to reload.</p>
           <div className="mt-3 flex justify-end gap-3">
-            <button className="underline" onClick={() => setUpdateReady(false)}>Later</button>
+            <button className="min-h-11 px-3 py-2 rounded-lg underline" onClick={() => setUpdateReady(false)}>Later</button>
             <button className="rounded-lg px-3 py-2 font-semibold" style={{ backgroundColor: 'var(--color-btn-active-bg)', color: 'var(--color-btn-active-text)' }} onClick={() => void updateServiceWorker.current(true)}>Update now</button>
           </div>
         </>
       ) : (
         <div className="flex items-center justify-between gap-3">
           <p>Ready to play offline.</p>
-          <button aria-label="Dismiss offline-ready notice" onClick={() => setOfflineReady(false)}>&times;</button>
+          <button
+            aria-label="Dismiss offline-ready notice"
+            // 44px hit area inside the card padding.
+            className="inline-flex items-center justify-center shrink-0 min-w-11 min-h-11 -m-2 rounded-lg text-2xl leading-none"
+            onClick={() => setOfflineReady(false)}
+          >
+            &times;
+          </button>
         </div>
       )}
     </div>

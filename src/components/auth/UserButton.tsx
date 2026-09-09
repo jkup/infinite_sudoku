@@ -18,7 +18,7 @@ export default function UserButton() {
     <button
       onClick={() => navigate('/sign-in')}
       style={{ color: 'var(--color-btn-text)', backgroundColor: 'var(--color-btn-bg)', borderColor: 'var(--color-cell-border)' }}
-      className="px-3 py-1.5 text-sm font-medium border rounded-lg transition-colors"
+      className="px-3 py-1.5 text-sm font-medium border rounded-lg transition-colors whitespace-nowrap"
     >
       Sign in
     </button>

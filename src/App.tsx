@@ -451,7 +451,7 @@ function GameScreen() {
           <h1 className="hidden sm:block text-lg font-bold whitespace-nowrap" style={{ color: 'var(--color-text)' }}>
             Infinite Sudoku
           </h1>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 min-w-0 max-w-full [&>*]:shrink-0">
             <GameModePicker onRequestNewGame={requestNewGame} />
             {CLERK_KEY ? <DailyPickerWithProgress onRequestDaily={requestDaily} /> : <DailyPicker onRequestDaily={requestDaily} />}
             {CLERK_KEY && <UserButton />}

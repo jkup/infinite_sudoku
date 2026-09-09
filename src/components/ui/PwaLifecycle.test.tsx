@@ -61,4 +61,15 @@ describe('PWA lifecycle UI', () => {
     act(() => { window.dispatchEvent(new Event('online')); });
     expect(retry).toHaveBeenCalledOnce();
   });
+
+  it('dismisses the offline notice from a finger-sized control', async () => {
+    const user = userEvent.setup();
+    render(<PwaLifecycle />);
+    act(() => pwa.options?.onOfflineReady?.());
+    const dismiss = screen.getByRole('button', { name: 'Dismiss offline-ready notice' });
+    // The audit measured the bare glyph at about 10x24px; keep the 44px minimum.
+    expect(dismiss).toHaveClass('min-w-11', 'min-h-11');
+    await user.click(dismiss);
+    expect(screen.queryByText('Ready to play offline.')).not.toBeInTheDocument();
+  });
 });

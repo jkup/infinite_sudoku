@@ -57,5 +57,8 @@
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.1.11",
     "wrangler": "^4.129.1"
+  },
+  "overrides": {
+    "sharp": "^0.35.4"
   }
 }
